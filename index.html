@@ -1,87 +1,168 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gestor de Consumo — Pro</title>
-
-  <link rel="icon" href="assets/favicon.svg">
-  <meta name="theme-color" content="#22c55e"/>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="theme-color" content="#1e88e5"/>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-
 <body>
-  <!-- STATUS DE CONEXÃO -->
-  <div id="checking" class="auth">
-    <div class="auth-card">
-      <h1>Gestor de Consumo</h1>
-      <p class="subtitle">Verificando servidor...</p>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-        <div id="server-indicator" style="width:14px;height:14px;border-radius:50%;background:gray;"></div>
-        <span id="server-label">Checando...</span>
-      </div>
-      <p id="server-status" style="margin-top:12px;color:var(--muted);"></p>
-    </div>
+
+  <!-- Indicador de servidor -->
+  <div class="conn-indicator">
+    <span id="server-indicator" class="dot"></span>
+    <span id="server-label">Checando…</span>
   </div>
 
-  <!-- LOGIN -->
-  <section id="auth" class="auth" style="display:none;">
+  <!-- Login -->
+  <section id="login-section" class="auth">
     <div class="auth-card">
       <h1>Gestor de Consumo</h1>
       <p class="subtitle">Acesse seu painel</p>
 
-      <div class="field">
-        <label for="email">E-mail</label>
-        <input id="email" type="email" placeholder="seu@email.com">
-      </div>
-      <div class="field">
-        <label for="password">Senha</label>
-        <input id="password" type="password" placeholder="••••••">
-      </div>
-      <button onclick="login()">Entrar</button>
-      <p id="login-msg" class="msg"></p>
+      <div id="checking" class="msg">🔄 Checando servidor…</div>
 
-      <button class="theme-toggle" onclick="toggleTheme()">Alternar Tema 🌗</button>
+      <div id="auth" style="display:none">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="email" placeholder="thiago@teste.com" />
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="password" placeholder="123456" />
+        </div>
+        <button onclick="login()">Entrar</button>
+        <div id="login-msg" class="msg"></div>
+      </div>
     </div>
   </section>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="app" style="display:none;">
+  <!-- App -->
+  <div id="dashboard" class="app" style="display:none">
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo">⚡</div>
+        <div class="logo">GC</div>
         <div class="brand-text">
           <strong>Gestor Pro</strong>
-          <span id="server-label-side">Render Cloud</span>
+          <span id="user-name">—</span>
         </div>
       </div>
       <nav>
-        <button class="nav-btn active">📊 Dashboard</button>
-        <button class="nav-btn" onclick="logout()">🚪 Sair</button>
+        <button class="nav-btn active" onclick="showSection('section-dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" onclick="showSection('section-meters')">🧭 Medidores</button>
+        <button class="nav-btn" onclick="showSection('section-readings')">📈 Leituras</button>
+        <button class="nav-btn" onclick="showSection('section-goals')">🎯 Metas</button>
+        <button class="nav-btn" onclick="showSection('section-users')">👥 Usuários</button>
       </nav>
+      <div style="margin-top:auto;display:flex;gap:8px;">
+        <button class="theme-toggle" onclick="toggleTheme()">🌓 Tema</button>
+        <button class="theme-toggle" onclick="logout()">🚪 Sair</button>
+      </div>
     </aside>
 
     <main class="main">
-      <div class="topbar">
-        <h2>Bem-vindo, <span id="user-name">Usuário</span></h2>
-        <button class="theme-toggle" onclick="toggleTheme()">🌗 Tema</button>
-      </div>
+      <!-- DASHBOARD -->
+      <section id="section-dashboard" class="content-section">
+        <h2>Visão Geral</h2>
+        <div class="cards">
+          <div class="card"><div>Total Leituras</div><strong id="card-readings">—</strong></div>
+          <div class="card"><div>Água (L)</div><strong id="card-water">—</strong></div>
+          <div class="card"><div>Energia (kWh)</div><strong id="card-energy">—</strong></div>
+          <div class="card"><div>Alertas hoje</div><strong id="card-alerts">—</strong></div>
+        </div>
+        <canvas id="chart" height="100"></canvas>
+        <ul id="alerts" class="alert-list" style="margin-top:12px;display:grid;gap:8px;"></ul>
+      </section>
 
-      <div class="cards">
-        <div class="card"><h4>Leituras</h4><p id="card-readings">—</p></div>
-        <div class="card"><h4>Água (L)</h4><p id="card-water">—</p></div>
-        <div class="card"><h4>Energia (kWh)</h4><p id="card-energy">—</p></div>
-      </div>
+      <!-- MEDIDORES -->
+      <section id="section-meters" class="content-section" style="display:none">
+        <h2>Medidores</h2>
+        <div class="cards">
+          <div class="card" style="grid-column:1/-1">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input id="meter-name" placeholder="Nome (ex: Ap 301 - Luz)"/>
+              <select id="meter-type">
+                <option value="agua">Água</option>
+                <option value="energia">Energia</option>
+              </select>
+              <input id="meter-location" placeholder="Local/Bloco (opcional)"/>
+              <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
+              <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
+            </div>
+          </div>
+        </div>
+        <table class="table">
+          <thead><tr><th>ID</th><th>Nome</th><th>Tipo</th><th>Local</th><th>Ações</th></tr></thead>
+          <tbody id="meter-list"></tbody>
+        </table>
+      </section>
 
-      <canvas id="chart" height="150"></canvas>
-      <ul id="alerts" class="alert-list"></ul>
+      <!-- LEITURAS -->
+      <section id="section-readings" class="content-section" style="display:none">
+        <h2>Leituras</h2>
+        <div class="cards">
+          <div class="card">Filtros rápidos:
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button class="theme-toggle" onclick="reloadReadings()">Atualizar</button>
+              <button class="theme-toggle" onclick="exportExcel()">Exportar Excel</button>
+            </div>
+          </div>
+        </div>
+        <table class="table">
+          <thead><tr><th>ID</th><th>Medidor</th><th>Tipo</th><th>Valor</th><th>Data</th></tr></thead>
+          <tbody id="readings-table"></tbody>
+        </table>
+      </section>
+
+      <!-- METAS -->
+      <section id="section-goals" class="content-section" style="display:none">
+        <h2>Metas por Medidor</h2>
+        <div class="cards">
+          <div class="card" style="grid-column:1/-1">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input id="goal-meter-id" placeholder="ID do medidor (ou 'agua'/'energia')" />
+              <input id="goal-meter-name" placeholder="Nome do medidor"/>
+              <input id="goal-daily" type="number" step="0.01" placeholder="Meta diária"/>
+              <input id="goal-warn" type="number" placeholder="% aviso (ex: 80)"/>
+              <button class="theme-toggle" onclick="saveGoal()">Salvar meta</button>
+              <button class="theme-toggle" onclick="deleteGoal()">Remover meta</button>
+              <button class="theme-toggle" onclick="loadGoals()">Atualizar</button>
+            </div>
+          </div>
+        </div>
+        <table class="table">
+          <thead><tr><th>Meter ID</th><th>Nome</th><th>Meta diária</th><th>Warn %</th></tr></thead>
+          <tbody id="goals-table"></tbody>
+        </table>
+      </section>
+
+      <!-- USUÁRIOS -->
+      <section id="section-users" class="content-section" style="display:none">
+        <h2>Usuários</h2>
+        <div class="cards">
+          <div class="card" style="grid-column:1/-1">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input id="user-name" placeholder="Nome"/>
+              <input id="user-email" placeholder="E-mail"/>
+              <input id="user-password" placeholder="Senha"/>
+              <select id="user-role"><option value="user">Usuário</option><option value="admin">Admin</option></select>
+              <button class="theme-toggle" onclick="createUser()">Adicionar</button>
+              <button class="theme-toggle" onclick="loadUsers()">Atualizar</button>
+            </div>
+          </div>
+        </div>
+        <table class="table">
+          <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Role</th><th>Criado</th><th>Ações</th></tr></thead>
+          <tbody id="users-table"></tbody>
+        </table>
+      </section>
+
     </main>
   </div>
-
-  <footer style="text-align:center;padding:10px;color:var(--muted);font-size:14px;">
-    © 2025 Gestor de Consumo — Thiago Tank
-  </footer>
 
   <script src="renderer.js"></script>
 </body>
