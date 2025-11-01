@@ -16,9 +16,9 @@ function setIndicator(type, text) {
 async function detectServer() {
   setIndicator('wait', 'Checando…');
   const urls = [
-  { url: "http://localhost:3000", type: "local" },
   { url: "https://gestor-consumo-backend.onrender.com", type: "cloud" },
 ];
+;
 ;
   for (const u of urls) {
     try {
