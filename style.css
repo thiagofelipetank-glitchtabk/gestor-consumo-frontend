@@ -1,0 +1,278 @@
+/* ===============================================
+   GESTOR DE CONSUMO - DARK & LIGHT THEME PRO
+   =============================================== */
+
+/* 🌙 Tema Padrão (Escuro) */
+:root {
+  --bg: #0b1220;
+  --panel: #0f172a;
+  --muted: #94a3b8;
+  --text: #e6edf6;
+  --brand: #22c55e;
+  --brand-hover: #2dd96c;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --line: #1e293b;
+  --radius: 12px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, Noto Sans;
+}
+
+/* ☀️ Tema Claro */
+:root[data-theme='light'] {
+  --bg: #f5f6fa;
+  --panel: #ffffff;
+  --muted: #64748b;
+  --text: #1e293b;
+  --brand: #16a34a;
+  --brand-hover: #22c55e;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --line: #cbd5e1;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* RESET */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body {
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  font-family: var(--font);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+}
+
+/* LOGIN */
+.auth {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.auth-card {
+  width: min(420px, 94vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.auth-card h1 {
+  font-size: 28px;
+  margin-bottom: 6px;
+
+  /* Gradiente no texto (com fallbacks) */
+  background: linear-gradient(90deg, #22c55e, #14b8a6);
+  background-clip: text;            /* padrão */
+  -webkit-background-clip: text;    /* WebKit */
+  color: transparent;               /* fallback padrão */
+  -webkit-text-fill-color: transparent; /* WebKit */
+
+  /* Se seu linter ainda reclamar, pode ignorar essa regra,
+     pois é proposital para habilitar o efeito no Chrome/Safari. */
+}
+
+.subtitle {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.field {
+  text-align: left;
+  margin-bottom: 14px;
+}
+.field label {
+  font-size: 14px;
+  color: var(--muted);
+}
+.field input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  transition: all 0.2s;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.auth-card button {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: none;
+  font-weight: 700;
+  color: #04110a;
+  background: var(--brand);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.auth-card button:hover {
+  background: var(--brand-hover);
+  transform: scale(1.02);
+}
+.msg {
+  min-height: 20px;
+  color: var(--danger);
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* APP */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  transition: background 0.3s;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.3s, border 0.3s;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.logo {
+  width: 36px;
+  height: 36px;
+  background: #12223c;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 20px;
+  color: white;
+}
+.brand-text strong {
+  display: block;
+  font-size: 16px;
+}
+.brand-text span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nav-btn {
+  text-align: left;
+  background: var(--bg);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nav-btn:hover {
+  background: var(--brand);
+  color: #fff;
+}
+.nav-btn.active {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* MAIN */
+.main {
+  padding: 20px;
+  transition: background 0.3s;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.theme-toggle {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.theme-toggle:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* CARDS */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s;
+}
+.card:hover {
+  transform: scale(1.02);
+}
+
+/* TABELA */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+}
+.table th, .table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.3s;
+}
+.table th {
+  background: var(--bg);
+}
+
+/* ALERTAS */
+.alert-list li {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+/* RESPONSIVO */
+@media (max-width: 1200px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    flex-direction: row;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+  }
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestor de Consumo — Pro</title>
+
+  <link rel="icon" href="assets/favicon.svg">
+  <meta name="theme-color" content="#22c55e"/>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <!-- STATUS DE CONEXÃO -->
+  <div id="checking" class="auth">
+    <div class="auth-card">
+      <h1>Gestor de Consumo</h1>
+      <p class="subtitle">Verificando servidor...</p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <div id="server-indicator" style="width:14px;height:14px;border-radius:50%;background:gray;"></div>
+        <span id="server-label">Checando...</span>
+      </div>
+      <p id="server-status" style="margin-top:12px;color:var(--muted);"></p>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <section id="auth" class="auth" style="display:none;">
+    <div class="auth-card">
+      <h1>Gestor de Consumo</h1>
+      <p class="subtitle">Acesse seu painel</p>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" placeholder="seu@email.com">
+      </div>
+      <div class="field">
+        <label for="password">Senha</label>
+        <input id="password" type="password" placeholder="••••••">
+      </div>
+      <button onclick="login()">Entrar</button>
+      <p id="login-msg" class="msg"></p>
+
+      <button class="theme-toggle" onclick="toggleTheme()">Alternar Tema 🌗</button>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="app" style="display:none;">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">⚡</div>
+        <div class="brand-text">
+          <strong>Gestor Pro</strong>
+          <span id="server-label-side">Render Cloud</span>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-btn active">📊 Dashboard</button>
+        <button class="nav-btn" onclick="logout()">🚪 Sair</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <h2>Bem-vindo, <span id="user-name">Usuário</span></h2>
+        <button class="theme-toggle" onclick="toggleTheme()">🌗 Tema</button>
+      </div>
+
+      <div class="cards">
+        <div class="card"><h4>Leituras</h4><p id="card-readings">—</p></div>
+        <div class="card"><h4>Água (L)</h4><p id="card-water">—</p></div>
+        <div class="card"><h4>Energia (kWh)</h4><p id="card-energy">—</p></div>
+      </div>
+
+      <canvas id="chart" height="150"></canvas>
+      <ul id="alerts" class="alert-list"></ul>
+    </main>
+  </div>
+
+  <footer style="text-align:center;padding:10px;color:var(--muted);font-size:14px;">
+    © 2025 Gestor de Consumo — Thiago Tank
+  </footer>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
