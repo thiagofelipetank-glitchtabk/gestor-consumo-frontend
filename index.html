@@ -1,57 +1,56 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
-  <div class="topbar">
-  <h1>Gestor de Consumo — Pro</h1>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div id="server-indicator" style="width:12px;height:12px;border-radius:50%;background:#ccc;"></div>
-    <span id="server-label">Desconectado</span>
-    <button class="theme-toggle" onclick="toggleTheme()">🌓 Tema</button>
-  </div>
-</div>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gestor de Consumo — Pro</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-  <meta name="theme-color" content="#1e88e5"/>
+  <link rel="icon" href="assets/favicon.svg" />
   <link rel="stylesheet" href="style.css" />
+
+  <!-- libs do frontend -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-
-  <!-- Indicador de servidor -->
-  <div class="conn-indicator">
-    <span id="server-indicator" class="dot"></span>
-    <span id="server-label">Checando…</span>
+  <!-- indicador topo -->
+  <div style="display:flex;gap:10px;align-items:center;justify-content:center;padding:8px 12px;">
+    <span id="server-indicator" style="width:10px;height:10px;border-radius:999px;background:#ef4444;"></span>
+    <span id="server-label" style="font-size:14px;color:#94a3b8;">Checando…</span>
+    <button onclick="toggleTheme()" class="theme-toggle">🌓 Tema</button>
   </div>
 
-  <!-- Login -->
-  <section id="login-section" class="auth">
+  <!-- tela de checagem -->
+  <section id="checking" class="auth">
+    <div class="auth-card">
+      <h1>Gestor de Consumo</h1>
+      <p class="subtitle">Acesse seu painel</p>
+      <div class="msg" id="server-status">Checando…</div>
+    </div>
+  </section>
+
+  <!-- login -->
+  <section id="auth" class="auth" style="display:none;">
     <div class="auth-card">
       <h1>Gestor de Consumo</h1>
       <p class="subtitle">Acesse seu painel</p>
 
-      <div id="checking" class="msg">🔄 Checando servidor…</div>
-
-      <div id="auth" style="display:none">
-        <div class="field">
-          <label>E-mail</label>
-          <input type="email" id="email" placeholder="thiago@teste.com" />
-        </div>
-        <div class="field">
-          <label>Senha</label>
-          <input type="password" id="password" placeholder="123456" />
-        </div>
-        <button onclick="login()">Entrar</button>
-        <div id="login-msg" class="msg"></div>
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="email" placeholder="thiago@teste.com" />
       </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="password" placeholder="123456" />
+      </div>
+      <button onclick="login()">Entrar</button>
+      <div class="msg" id="login-msg"></div>
     </div>
   </section>
 
-  <!-- App -->
-  <div id="dashboard" class="app" style="display:none">
+  <!-- app -->
+  <div id="app" class="app" style="display:none;">
     <aside class="sidebar">
       <div class="brand">
         <div class="logo">GC</div>
@@ -61,115 +60,182 @@
         </div>
       </div>
       <nav>
-        <button class="nav-btn active" onclick="showSection('section-dashboard')">📊 Dashboard</button>
-        <button class="nav-btn" onclick="showSection('section-meters')">🧭 Medidores</button>
-        <button class="nav-btn" onclick="showSection('section-readings')">📈 Leituras</button>
-        <button class="nav-btn" onclick="showSection('section-goals')">🎯 Metas</button>
-        <button class="nav-btn" onclick="showSection('section-users')">👥 Usuários</button>
+        <button class="nav-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" onclick="showSection('meters')">🧭 Medidores</button>
+        <button class="nav-btn" onclick="showSection('readings')">📈 Leituras</button>
+        <!-- novas abas -->
+        <button class="nav-btn" onclick="showSection('properties')">🏠 Imóveis</button>
+        <button class="nav-btn" onclick="showSection('finance')">💼 Financeiro</button>
+        <button class="nav-btn" onclick="showSection('goals')">🎯 Metas</button>
+        <button class="nav-btn" onclick="showSection('reports')">📋 Relatórios</button>
+        <button class="nav-btn" onclick="showSection('users')">👥 Usuários</button>
+        <button class="nav-btn" onclick="logout()">🚪 Sair</button>
       </nav>
-      <div style="margin-top:auto;display:flex;gap:8px;">
-        <button class="theme-toggle" onclick="toggleTheme()">🌓 Tema</button>
-        <button class="theme-toggle" onclick="logout()">🚪 Sair</button>
-      </div>
     </aside>
 
     <main class="main">
       <!-- DASHBOARD -->
-      <section id="section-dashboard" class="content-section">
-        <h2>Visão Geral</h2>
+      <section id="section-dashboard">
+        <div class="topbar"><h2>Dashboard</h2></div>
         <div class="cards">
-          <div class="card"><div>Total Leituras</div><strong id="card-readings">—</strong></div>
-          <div class="card"><div>Água (L)</div><strong id="card-water">—</strong></div>
-          <div class="card"><div>Energia (kWh)</div><strong id="card-energy">—</strong></div>
-          <div class="card"><div>Alertas hoje</div><strong id="card-alerts">—</strong></div>
+          <div class="card"><div>Leituras</div><div id="card-readings" style="font-size:28px;font-weight:700;">—</div></div>
+          <div class="card"><div>Água (L)</div><div id="card-water" style="font-size:28px;font-weight:700;">—</div></div>
+          <div class="card"><div>Energia (kWh)</div><div id="card-energy" style="font-size:28px;font-weight:700;">—</div></div>
         </div>
-        <canvas id="chart" height="100"></canvas>
-        <ul id="alerts" class="alert-list" style="margin-top:12px;display:grid;gap:8px;"></ul>
+        <div class="card"><h3>Comparativo Diário (últimos 7 dias)</h3><canvas id="chart-daily" height="120"></canvas></div>
+        <div class="card"><h3>Comparativo Mensal (últimos 6 meses)</h3><canvas id="chart-monthly" height="120"></canvas></div>
+        <div class="card"><h3>Alertas</h3><ul id="alerts" class="alert-list" style="display:grid;gap:8px;"></ul></div>
       </section>
 
       <!-- MEDIDORES -->
-      <section id="section-meters" class="content-section" style="display:none">
+      <section id="section-meters" style="display:none;">
         <h2>Medidores</h2>
         <div class="cards">
-          <div class="card" style="grid-column:1/-1">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <input id="meter-name" placeholder="Nome (ex: Ap 301 - Luz)"/>
-              <select id="meter-type">
-                <option value="agua">Água</option>
-                <option value="energia">Energia</option>
-              </select>
-              <input id="meter-location" placeholder="Local/Bloco (opcional)"/>
-              <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
-              <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
-            </div>
+          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="meter-name" placeholder="Nome do medidor" />
+            <select id="meter-type">
+              <option value="agua">Água</option>
+              <option value="energia">Energia</option>
+            </select>
+            <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
+            <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
+          </div>
+          <div class="card" style="grid-column:1/-1;">
+            <ul id="meter-list" style="display:grid;gap:8px;"></ul>
           </div>
         </div>
-        <table class="table">
-          <thead><tr><th>ID</th><th>Nome</th><th>Tipo</th><th>Local</th><th>Ações</th></tr></thead>
-          <tbody id="meter-list"></tbody>
-        </table>
       </section>
 
       <!-- LEITURAS -->
-      <section id="section-readings" class="content-section" style="display:none">
+      <section id="section-readings" style="display:none;">
         <h2>Leituras</h2>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <div><label>Tipo</label><br/>
+            <select id="filter-type"><option value="">Todos</option><option value="agua">Água</option><option value="energia">Energia</option></select>
+          </div>
+          <div><label>De</label><br/><input type="date" id="date-from"></div>
+          <div><label>Até</label><br/><input type="date" id="date-to"></div>
+          <button class="theme-toggle" onclick="applyReadingsFilter()">Aplicar</button>
+          <button class="theme-toggle" onclick="clearReadingsFilter()">Limpar</button>
+          <button class="theme-toggle" onclick="exportToExcel()">📦 Excel</button>
+          <button class="theme-toggle" onclick="exportPDF()">🧾 PDF</button>
+        </div>
+        <div class="card">
+          <table class="table" id="readings-table">
+            <thead><tr><th>ID</th><th>Medidor</th><th>Tipo</th><th>Valor</th><th>Data</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- IMÓVEIS -->
+      <section id="section-properties" style="display:none;">
+        <h2>Imóveis</h2>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <div><label>Nome do Imóvel</label><br/><input id="prop-name" placeholder="Ex.: Kitnet 01" /></div>
+          <div><label>Endereço</label><br/><input id="prop-address" placeholder="Rua, nº, bairro" /></div>
+          <div><label>Responsável</label><br/><input id="prop-owner" placeholder="Nome do responsável" /></div>
+          <button class="theme-toggle" onclick="createProperty()">Cadastrar</button>
+          <button class="theme-toggle" onclick="loadProperties()">Atualizar</button>
+        </div>
+        <div class="card">
+          <table class="table" id="properties-table">
+            <thead><tr><th>ID</th><th>Nome</th><th>Endereço</th><th>Responsável</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- FINANCEIRO -->
+      <section id="section-finance" style="display:none;">
+        <h2>Financeiro</h2>
         <div class="cards">
-          <div class="card">Filtros rápidos:
-            <div style="display:flex;gap:8px;margin-top:6px;">
-              <button class="theme-toggle" onclick="reloadReadings()">Atualizar</button>
-              <button class="theme-toggle" onclick="exportExcel()">Exportar Excel</button>
-            </div>
+          <!-- Funcionários -->
+          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+            <div><label>Nome</label><br/><input id="emp-name" placeholder="Nome do funcionário" /></div>
+            <div><label>Cargo</label><br/><input id="emp-role" placeholder="Cargo" /></div>
+            <div><label>Salário Base</label><br/><input id="emp-salary" type="number" step="0.01" placeholder="0,00" /></div>
+            <button class="theme-toggle" onclick="addEmployee()">Adicionar</button>
+            <button class="theme-toggle" onclick="loadEmployees()">Atualizar</button>
+          </div>
+          <div class="card">
+            <h3>Funcionários</h3>
+            <table class="table" id="employees-table">
+              <thead><tr><th>ID</th><th>Nome</th><th>Cargo</th><th>Salário</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <!-- Vales -->
+          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+            <div><label>Funcionário</label><br/><select id="allowance-emp"></select></div>
+            <div><label>Data</label><br/><input id="allowance-date" type="date" /></div>
+            <div><label>Valor</label><br/><input id="allowance-value" type="number" step="0.01" placeholder="0,00" /></div>
+            <div><label>Descrição</label><br/><input id="allowance-desc" placeholder="Motivo do vale" /></div>
+            <button class="theme-toggle" onclick="addAllowance()">Lançar Vale</button>
+            <button class="theme-toggle" onclick="loadAllowances()">Atualizar</button>
+          </div>
+          <div class="card">
+            <h3>Vales</h3>
+            <table class="table" id="allowances-table">
+              <thead><tr><th>Funcionário</th><th>Data</th><th>Valor</th><th>Descrição</th></tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
-        <table class="table">
-          <thead><tr><th>ID</th><th>Medidor</th><th>Tipo</th><th>Valor</th><th>Data</th></tr></thead>
-          <tbody id="readings-table"></tbody>
-        </table>
       </section>
 
       <!-- METAS -->
-      <section id="section-goals" class="content-section" style="display:none">
-        <h2>Metas por Medidor</h2>
-        <div class="cards">
-          <div class="card" style="grid-column:1/-1">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <input id="goal-meter-id" placeholder="ID do medidor (ou 'agua'/'energia')" />
-              <input id="goal-meter-name" placeholder="Nome do medidor"/>
-              <input id="goal-daily" type="number" step="0.01" placeholder="Meta diária"/>
-              <input id="goal-warn" type="number" placeholder="% aviso (ex: 80)"/>
-              <button class="theme-toggle" onclick="saveGoal()">Salvar meta</button>
-              <button class="theme-toggle" onclick="deleteGoal()">Remover meta</button>
-              <button class="theme-toggle" onclick="loadGoals()">Atualizar</button>
-            </div>
-          </div>
+      <section id="section-goals" style="display:none;">
+        <h2>Metas</h2>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <select id="goal-meter"></select>
+          <input type="number" id="goal-daily" placeholder="Meta diária" min="0" step="0.01"/>
+          <input type="number" id="goal-warn" placeholder="% aviso (ex: 90)" min="1" max="99"/>
+          <button class="theme-toggle" onclick="saveGoal()">Salvar</button>
+          <button class="theme-toggle" onclick="deleteGoal()">Remover</button>
         </div>
-        <table class="table">
-          <thead><tr><th>Meter ID</th><th>Nome</th><th>Meta diária</th><th>Warn %</th></tr></thead>
-          <tbody id="goals-table"></tbody>
-        </table>
+        <div class="card"><ul id="alerts-goals" class="alert-list" style="display:grid;gap:8px;"></ul></div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section id="section-reports" style="display:none;">
+        <h2>Relatórios</h2>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <select id="report-range">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+          <button class="theme-toggle" onclick="generateReport()">Gerar Tabela</button>
+          <button class="theme-toggle" onclick="exportToExcel()">📦 Excel</button>
+          <button class="theme-toggle" onclick="exportPDF()">🧾 PDF</button>
+        </div>
+        <div class="card">
+          <table class="table" id="report-table">
+            <thead><tr><th>Dia</th><th>Tipo</th><th>Total</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
 
       <!-- USUÁRIOS -->
-      <section id="section-users" class="content-section" style="display:none">
+      <section id="section-users" style="display:none;">
         <h2>Usuários</h2>
-        <div class="cards">
-          <div class="card" style="grid-column:1/-1">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <input id="user-name" placeholder="Nome"/>
-              <input id="user-email" placeholder="E-mail"/>
-              <input id="user-password" placeholder="Senha"/>
-              <select id="user-role"><option value="user">Usuário</option><option value="admin">Admin</option></select>
-              <button class="theme-toggle" onclick="createUser()">Adicionar</button>
-              <button class="theme-toggle" onclick="loadUsers()">Atualizar</button>
-            </div>
-          </div>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <input id="userCreate-name" placeholder="Nome" />
+          <input id="userCreate-email" placeholder="E-mail" />
+          <input id="userCreate-password" placeholder="Senha" />
+          <select id="userCreate-role"><option value="user">Usuário</option><option value="admin">Admin</option></select>
+          <button class="theme-toggle" onclick="createUser()">Adicionar</button>
+          <button class="theme-toggle" onclick="loadUsers()">Atualizar</button>
         </div>
-        <table class="table">
-          <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Role</th><th>Criado</th><th>Ações</th></tr></thead>
-          <tbody id="users-table"></tbody>
-        </table>
+        <div class="card">
+          <table class="table" id="users-table">
+            <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Função</th><th>Criado</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
-
     </main>
   </div>
 
