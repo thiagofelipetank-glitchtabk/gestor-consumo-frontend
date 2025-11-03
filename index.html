@@ -63,12 +63,12 @@
         <button class="nav-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
         <button class="nav-btn" onclick="showSection('meters')">🧭 Medidores</button>
         <button class="nav-btn" onclick="showSection('readings')">📈 Leituras</button>
-        <!-- novas abas -->
         <button class="nav-btn" onclick="showSection('properties')">🏠 Imóveis</button>
         <button class="nav-btn" onclick="showSection('finance')">💼 Financeiro</button>
         <button class="nav-btn" onclick="showSection('goals')">🎯 Metas</button>
         <button class="nav-btn" onclick="showSection('reports')">📋 Relatórios</button>
         <button class="nav-btn" onclick="showSection('users')">👥 Usuários</button>
+        <button class="nav-btn" onclick="showSection('history')">🗂️ Histórico</button>
         <button class="nav-btn" onclick="logout()">🚪 Sair</button>
       </nav>
     </aside>
@@ -194,7 +194,7 @@
           <button class="theme-toggle" onclick="saveGoal()">Salvar</button>
           <button class="theme-toggle" onclick="deleteGoal()">Remover</button>
         </div>
-        <div class="card"><ul id="alerts-goals" class="alert-list" style="display:grid;gap:8px;"></ul></div>
+        <div class="card"><ul id="alerts" class="alert-list" style="display:grid;gap:8px;"></ul></div>
       </section>
 
       <!-- RELATÓRIOS -->
@@ -232,6 +232,53 @@
         <div class="card">
           <table class="table" id="users-table">
             <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Função</th><th>Criado</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section id="section-history" style="display:none;">
+        <h2>Histórico (Backups de Reset)</h2>
+        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <div><label>Medidor</label><br/>
+            <select id="history-meter">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div><label>Ciclo (etiqueta)</label><br/><input id="history-cycle" placeholder="Ex.: Kitnet 01 — João, nov/2025" /></div>
+          <div><label>De</label><br/><input type="date" id="history-from" /></div>
+          <div><label>Até</label><br/><input type="date" id="history-to" /></div>
+          <button class="theme-toggle" onclick="loadBackups()">Filtrar</button>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="theme-toggle" onclick="restoreSelected(false)">⬅️ Restaurar selecionados</button>
+            <button class="theme-toggle" onclick="restoreSelected(true)">⬅️ Restaurar & Remover do backup</button>
+            <span style="opacity:.8;">ou por ciclo:</span>
+            <input id="history-cycle" placeholder="Ciclo exato para restore" style="min-width:260px;" />
+            <input id="history-meter-aux" style="display:none;" />
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="history-purge" /> Remover do backup após restaurar
+            </label>
+            <button class="theme-toggle" onclick="restoreByCycle()">Restaurar por Ciclo</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <table class="table" id="history-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>ID</th>
+                <th>Ciclo</th>
+                <th>Medidor</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Backup em</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>

@@ -1,6 +1,6 @@
-/* ======================================================
-   Gestor de Consumo — STYLE PRO 4.0
-   Tema dinâmico (light/dark) + Layout Responsivo
+/* ====================================================== 
+   Gestor de Consumo — STYLE PRO 4.4
+   Tema dinâmico (light/dark) + Layout Responsivo + Histórico
    ====================================================== */
 
 /* ---------- Tema global ---------- */
@@ -12,6 +12,8 @@
   --accent: #3b82f6;
   --accent2: #22c55e;
   --alert: #ef4444;
+  --muted: #94a3b8;
+  --shadow: rgba(0, 0, 0, 0.25);
 }
 
 [data-theme='light'] {
@@ -22,6 +24,8 @@
   --accent: #2563eb;
   --accent2: #16a34a;
   --alert: #dc2626;
+  --muted: #475569;
+  --shadow: rgba(0, 0, 0, 0.08);
 }
 
 /* ---------- Reset básico ---------- */
@@ -37,9 +41,10 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* ---------- Botões genéricos ---------- */
+/* ---------- Botões ---------- */
 button {
   background: var(--accent);
   color: white;
@@ -48,9 +53,11 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s;
+  font-size: 0.95rem;
+  transition: background 0.2s, transform 0.1s;
 }
 button:hover { background: var(--accent2); }
+button:active { transform: scale(0.96); }
 
 .theme-toggle {
   background: var(--card);
@@ -70,9 +77,19 @@ input, select {
   color: var(--text);
   padding: 8px 10px;
   font-size: 15px;
+  transition: border 0.2s;
 }
 input:focus, select:focus {
-  outline: 2px solid var(--accent);
+  outline: none;
+  border-color: var(--accent);
+}
+label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 /* ---------- Autenticação ---------- */
@@ -92,14 +109,14 @@ input:focus, select:focus {
   flex-direction: column;
   gap: 15px;
   text-align: center;
-  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  box-shadow: 0 0 20px var(--shadow);
 }
 .auth-card h1 {
   font-size: 1.6rem;
 }
 .auth-card .subtitle {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--muted);
 }
 .auth-card .field {
   text-align: left;
@@ -107,16 +124,13 @@ input:focus, select:focus {
   flex-direction: column;
   gap: 4px;
 }
-.auth-card input {
-  width: 100%;
-}
 .msg {
   color: var(--alert);
   font-size: 0.9rem;
   min-height: 1.2em;
 }
 
-/* ---------- App Layout ---------- */
+/* ---------- Layout App ---------- */
 .app {
   display: grid;
   grid-template-columns: 220px 1fr;
@@ -138,7 +152,7 @@ input:focus, select:focus {
   gap: 10px;
   margin-bottom: 20px;
 }
-.brand .logo {
+.logo {
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -165,15 +179,13 @@ input:focus, select:focus {
   cursor: pointer;
   font-size: 15px;
 }
-.nav-btn:hover {
-  background: var(--line);
-}
+.nav-btn:hover { background: var(--line); }
 .nav-btn.active {
   background: var(--accent);
   color: white;
 }
 
-/* Main */
+/* ---------- Main ---------- */
 .main {
   background: var(--bg);
   overflow-y: auto;
@@ -187,9 +199,8 @@ input:focus, select:focus {
   align-items: center;
   justify-content: space-between;
 }
-.topbar h2 {
-  font-size: 1.4rem;
-}
+.topbar h2 { font-size: 1.4rem; }
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
@@ -202,7 +213,8 @@ input:focus, select:focus {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  box-shadow: 0 2px 6px var(--shadow);
 }
 
 /* ---------- Tabelas ---------- */
@@ -222,7 +234,7 @@ input:focus, select:focus {
   font-weight: 600;
 }
 .table tr:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(255,255,255,0.05);
 }
 
 /* ---------- Alertas ---------- */
@@ -234,11 +246,36 @@ input:focus, select:focus {
   font-size: 0.9rem;
 }
 
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* ---------- Histórico ---------- */
+#section-history h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#section-history table td, #section-history table th {
+  font-size: 0.9rem;
+}
+#section-history input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 /* ---------- Responsividade ---------- */
-@media (max-width: 768px) {
-  .app {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
   .sidebar {
     flex-direction: row;
     align-items: center;
@@ -249,10 +286,7 @@ input:focus, select:focus {
     font-size: 13px;
     padding: 6px;
   }
-  .main {
-    padding: 10px;
-  }
-  .card {
-    padding: 12px;
-  }
+  .main { padding: 10px; }
+  .card { padding: 12px; }
+  .cards { grid-template-columns: 1fr; }
 }
