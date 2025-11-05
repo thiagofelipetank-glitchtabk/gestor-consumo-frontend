@@ -15,9 +15,9 @@
 </head>
 <body>
   <!-- indicador topo -->
-  <div style="display:flex;gap:10px;align-items:center;justify-content:center;padding:8px 12px;">
-    <span id="server-indicator" style="width:10px;height:10px;border-radius:999px;background:#ef4444;"></span>
-    <span id="server-label" style="font-size:14px;color:#94a3b8;">Checando…</span>
+  <div class="top-indicator">
+    <span id="server-indicator" class="dot red"></span>
+    <span id="server-label" class="muted">Checando…</span>
     <button onclick="toggleTheme()" class="theme-toggle">🌓 Tema</button>
   </div>
 
@@ -38,11 +38,11 @@
 
       <div class="field">
         <label>E-mail</label>
-        <input type="email" id="email" placeholder="thiago@teste.com" />
+        <input type="email" id="email" placeholder="" autocomplete="username" />
       </div>
       <div class="field">
         <label>Senha</label>
-        <input type="password" id="password" placeholder="123456" />
+        <input type="password" id="password" placeholder="" autocomplete="current-password" />
       </div>
       <button onclick="login()">Entrar</button>
       <div class="msg" id="login-msg"></div>
@@ -57,6 +57,7 @@
         <div class="brand-text">
           <strong>Gestor Pro</strong>
           <span id="user-name">—</span>
+          <span id="user-role" class="role-badge">—</span>
         </div>
       </div>
       <nav>
@@ -66,9 +67,7 @@
         <button class="nav-btn" onclick="showSection('properties')">🏠 Imóveis</button>
         <button class="nav-btn" onclick="showSection('finance')">💼 Financeiro</button>
         <button class="nav-btn" onclick="showSection('goals')">🎯 Metas</button>
-        <button class="nav-btn" onclick="showSection('reports')">📋 Relatórios</button>
         <button class="nav-btn" onclick="showSection('users')">👥 Usuários</button>
-        <button class="nav-btn" onclick="showSection('history')">🗂️ Histórico</button>
         <button class="nav-btn" onclick="logout()">🚪 Sair</button>
       </nav>
     </aside>
@@ -77,41 +76,73 @@
       <!-- DASHBOARD -->
       <section id="section-dashboard">
         <div class="topbar"><h2>Dashboard</h2></div>
-        <div class="cards">
-          <div class="card"><div>Leituras</div><div id="card-readings" style="font-size:28px;font-weight:700;">—</div></div>
-          <div class="card"><div>Água (L)</div><div id="card-water" style="font-size:28px;font-weight:700;">—</div></div>
-          <div class="card"><div>Energia (kWh)</div><div id="card-energy" style="font-size:28px;font-weight:700;">—</div></div>
+
+        <div class="cards quick-cards">
+          <div class="card"><div>Total Leituras</div><div id="card-readings" class="big">—</div></div>
+          <div class="card"><div>Água (L)</div><div id="card-water" class="big">—</div></div>
+          <div class="card"><div>Energia (kWh)</div><div id="card-energy" class="big">—</div></div>
         </div>
-        <div class="card"><h3>Comparativo Diário (últimos 7 dias)</h3><canvas id="chart-daily" height="120"></canvas></div>
-        <div class="card"><h3>Comparativo Mensal (últimos 6 meses)</h3><canvas id="chart-monthly" height="120"></canvas></div>
-        <div class="card"><h3>Alertas</h3><ul id="alerts" class="alert-list" style="display:grid;gap:8px;"></ul></div>
+
+        <div class="card">
+          <div class="tabs">
+            <button id="tab-agua" class="tab active" onclick="setDashTab('agua')">Água</button>
+            <button id="tab-energia" class="tab" onclick="setDashTab('energia')">Energia</button>
+            <div class="tab-spacer"></div>
+            <select id="dash-range" onchange="loadDashboard()">
+              <option value="1">Hoje</option>
+              <option value="7" selected>Últimos 7 dias</option>
+              <option value="30">Últimos 30 dias</option>
+            </select>
+          </div>
+          <canvas id="chart-main" height="140"></canvas>
+        </div>
+
+        <div class="cards">
+          <div class="card">
+            <h3>Comparativo Diário (7 dias)</h3>
+            <canvas id="chart-daily" height="120"></canvas>
+          </div>
+          <div class="card">
+            <h3>Comparativo Mensal (6 meses)</h3>
+            <canvas id="chart-monthly" height="120"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Alertas de Meta</h3>
+          <ul id="alerts" class="alert-list"></ul>
+        </div>
       </section>
 
       <!-- MEDIDORES -->
       <section id="section-meters" style="display:none;">
         <h2>Medidores</h2>
-        <div class="cards">
-          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input id="meter-name" placeholder="Nome do medidor" />
-            <select id="meter-type">
-              <option value="agua">Água</option>
-              <option value="energia">Energia</option>
-            </select>
-            <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
-            <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
-          </div>
-          <div class="card" style="grid-column:1/-1;">
-            <ul id="meter-list" style="display:grid;gap:8px;"></ul>
-          </div>
+        <div id="admin-meters-create" class="card create-row" style="display:none;">
+          <input id="meter-name" placeholder="Nome do medidor" />
+          <select id="meter-type">
+            <option value="agua">Água</option>
+            <option value="energia">Energia</option>
+          </select>
+          <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
+          <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
+        </div>
+
+        <div class="card">
+          <ul id="meter-list" class="meter-list"></ul>
         </div>
       </section>
 
       <!-- LEITURAS -->
       <section id="section-readings" style="display:none;">
         <h2>Leituras</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <div><label>Tipo</label><br/>
-            <select id="filter-type"><option value="">Todos</option><option value="agua">Água</option><option value="energia">Energia</option></select>
+        <div class="card filters">
+          <div>
+            <label>Tipo</label><br/>
+            <select id="filter-type">
+              <option value="">Todos</option>
+              <option value="agua">Água</option>
+              <option value="energia">Energia</option>
+            </select>
           </div>
           <div><label>De</label><br/><input type="date" id="date-from"></div>
           <div><label>Até</label><br/><input type="date" id="date-to"></div>
@@ -131,7 +162,7 @@
       <!-- IMÓVEIS -->
       <section id="section-properties" style="display:none;">
         <h2>Imóveis</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div id="admin-props-create" class="card create-row" style="display:none;">
           <div><label>Nome do Imóvel</label><br/><input id="prop-name" placeholder="Ex.: Kitnet 01" /></div>
           <div><label>Endereço</label><br/><input id="prop-address" placeholder="Rua, nº, bairro" /></div>
           <div><label>Responsável</label><br/><input id="prop-owner" placeholder="Nome do responsável" /></div>
@@ -146,139 +177,59 @@
         </div>
       </section>
 
-      <!-- FINANCEIRO -->
+      <!-- FINANCEIRO (tarifas locais) -->
       <section id="section-finance" style="display:none;">
         <h2>Financeiro</h2>
-        <div class="cards">
-          <!-- Funcionários -->
-          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-            <div><label>Nome</label><br/><input id="emp-name" placeholder="Nome do funcionário" /></div>
-            <div><label>Cargo</label><br/><input id="emp-role" placeholder="Cargo" /></div>
-            <div><label>Salário Base</label><br/><input id="emp-salary" type="number" step="0.01" placeholder="0,00" /></div>
-            <button class="theme-toggle" onclick="addEmployee()">Adicionar</button>
-            <button class="theme-toggle" onclick="loadEmployees()">Atualizar</button>
+        <div class="card create-row">
+          <div>
+            <label>Tarifa Água (R$/m³)</label><br/>
+            <input id="tar-agua" type="number" step="0.0001" placeholder="0.00" />
           </div>
-          <div class="card">
-            <h3>Funcionários</h3>
-            <table class="table" id="employees-table">
-              <thead><tr><th>ID</th><th>Nome</th><th>Cargo</th><th>Salário</th></tr></thead>
-              <tbody></tbody>
-            </table>
+          <div>
+            <label>Tarifa Energia (R$/kWh)</label><br/>
+            <input id="tar-energia" type="number" step="0.0001" placeholder="0.00" />
           </div>
-          <!-- Vales -->
-          <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-            <div><label>Funcionário</label><br/><select id="allowance-emp"></select></div>
-            <div><label>Data</label><br/><input id="allowance-date" type="date" /></div>
-            <div><label>Valor</label><br/><input id="allowance-value" type="number" step="0.01" placeholder="0,00" /></div>
-            <div><label>Descrição</label><br/><input id="allowance-desc" placeholder="Motivo do vale" /></div>
-            <button class="theme-toggle" onclick="addAllowance()">Lançar Vale</button>
-            <button class="theme-toggle" onclick="loadAllowances()">Atualizar</button>
-          </div>
-          <div class="card">
-            <h3>Vales</h3>
-            <table class="table" id="allowances-table">
-              <thead><tr><th>Funcionário</th><th>Data</th><th>Valor</th><th>Descrição</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+          <button class="theme-toggle" onclick="saveTarifas()">Salvar tarifas</button>
+          <span class="muted">* Salvo neste navegador por enquanto.</span>
+        </div>
+        <div class="card">
+          <p class="muted">As tarifas acima são usadas para estimar custo nas telas/relatórios. Em próxima etapa podemos salvar no backend.</p>
         </div>
       </section>
 
       <!-- METAS -->
       <section id="section-goals" style="display:none;">
         <h2>Metas</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div class="card create-row">
           <select id="goal-meter"></select>
           <input type="number" id="goal-daily" placeholder="Meta diária" min="0" step="0.01"/>
           <input type="number" id="goal-warn" placeholder="% aviso (ex: 90)" min="1" max="99"/>
           <button class="theme-toggle" onclick="saveGoal()">Salvar</button>
           <button class="theme-toggle" onclick="deleteGoal()">Remover</button>
         </div>
-        <div class="card"><ul id="alerts" class="alert-list" style="display:grid;gap:8px;"></ul></div>
+        <div class="card"><ul id="alerts-goals" class="alert-list"></ul></div>
       </section>
 
-      <!-- RELATÓRIOS -->
-      <section id="section-reports" style="display:none;">
-        <h2>Relatórios</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <select id="report-range">
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="90">Últimos 90 dias</option>
-          </select>
-          <button class="theme-toggle" onclick="generateReport()">Gerar Tabela</button>
-          <button class="theme-toggle" onclick="exportToExcel()">📦 Excel</button>
-          <button class="theme-toggle" onclick="exportPDF()">🧾 PDF</button>
-        </div>
-        <div class="card">
-          <table class="table" id="report-table">
-            <thead><tr><th>Dia</th><th>Tipo</th><th>Total</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- USUÁRIOS -->
+      <!-- USUÁRIOS (admin) -->
       <section id="section-users" style="display:none;">
-        <h2>Usuários</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <h2>Usuários (Admin)</h2>
+
+        <div id="admin-users-create" class="card create-row" style="display:none;">
           <input id="userCreate-name" placeholder="Nome" />
           <input id="userCreate-email" placeholder="E-mail" />
           <input id="userCreate-password" placeholder="Senha" />
-          <select id="userCreate-role"><option value="user">Usuário</option><option value="admin">Admin</option></select>
+          <select id="userCreate-role">
+            <option value="user">Usuário</option>
+            <option value="admin">Admin</option>
+          </select>
+          <div id="userCreate-meters" class="checkbox-grid"></div>
           <button class="theme-toggle" onclick="createUser()">Adicionar</button>
           <button class="theme-toggle" onclick="loadUsers()">Atualizar</button>
         </div>
+
         <div class="card">
           <table class="table" id="users-table">
-            <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Função</th><th>Criado</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- HISTÓRICO -->
-      <section id="section-history" style="display:none;">
-        <h2>Histórico (Backups de Reset)</h2>
-        <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <div><label>Medidor</label><br/>
-            <select id="history-meter">
-              <option value="">Todos</option>
-            </select>
-          </div>
-          <div><label>Ciclo (etiqueta)</label><br/><input id="history-cycle" placeholder="Ex.: Kitnet 01 — João, nov/2025" /></div>
-          <div><label>De</label><br/><input type="date" id="history-from" /></div>
-          <div><label>Até</label><br/><input type="date" id="history-to" /></div>
-          <button class="theme-toggle" onclick="loadBackups()">Filtrar</button>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="theme-toggle" onclick="restoreSelected(false)">⬅️ Restaurar selecionados</button>
-            <button class="theme-toggle" onclick="restoreSelected(true)">⬅️ Restaurar & Remover do backup</button>
-            <span style="opacity:.8;">ou por ciclo:</span>
-            <input id="history-cycle" placeholder="Ciclo exato para restore" style="min-width:260px;" />
-            <input id="history-meter-aux" style="display:none;" />
-            <label style="display:flex;align-items:center;gap:6px;">
-              <input type="checkbox" id="history-purge" /> Remover do backup após restaurar
-            </label>
-            <button class="theme-toggle" onclick="restoreByCycle()">Restaurar por Ciclo</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <table class="table" id="history-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>ID</th>
-                <th>Ciclo</th>
-                <th>Medidor</th>
-                <th>Tipo</th>
-                <th>Valor</th>
-                <th>Backup em</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Função</th><th>Medidores</th><th>Ações</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>

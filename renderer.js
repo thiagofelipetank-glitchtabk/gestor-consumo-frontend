@@ -1,11 +1,14 @@
 // ======================================================
-// FRONTEND PRO 4.4 — Auto Server + Login + Comparativos
-// + Fase 2 (Imóveis/Financeiro) + Reset Seguro + Histórico/Restore
+// FRONTEND PRO 4.4 — Admin/User + Permissões + Abas Água/Luz
+// Mantém: auto-server, leituras, metas, imóveis, exportações.
+// Financeiro: somente tarifas locais por enquanto.
 // ======================================================
 
 let API = '';
 let TOKEN = '';
 let currentUser = null;
+let currentDashTab = 'agua'; // água | energia
+let chartMain, chartDaily, chartMonthly;
 
 // -------------------------
 // Detecção automática do servidor
@@ -16,7 +19,7 @@ async function checkServer() {
   const label = document.getElementById('server-label');
 
   if (status) status.textContent = 'Checando…';
-  if (indicator) indicator.style.background = 'gray';
+  if (indicator) indicator.classList.remove('red');
   if (label) label.textContent = 'Checando…';
 
   const urls = [
@@ -88,18 +91,21 @@ async function login() {
     const app = document.getElementById('app');
     if (auth) auth.style.display = 'none';
     if (app) app.style.display = 'grid';
-    const uname = document.getElementById('user-name');
-    if (uname) uname.textContent = currentUser.name;
+    document.getElementById('user-name').textContent = currentUser.name || '-';
+    document.getElementById('user-role').textContent = currentUser.role || 'user';
 
-    await Promise.all([
+    applyRoleVisibility();
+
+    await Promise.allSettled([
       loadDashboard(),
       loadMeters(),
       loadGoalsOptions(),
       loadProperties(),
-      loadEmployees().then(() => setTimeout(loadAllowances, 300)).catch(()=>{}),
-      // histórico inicial
-      loadBackups()
+      loadUsersIfAdmin()
     ]);
+
+    // carregar tarifas locais
+    loadTarifasUI();
   } catch (e) {
     if (msg) msg.textContent = e.message;
   }
@@ -123,44 +129,65 @@ function logout() {
     if (checking) checking.style.display = 'none';
     if (auth) auth.style.display = 'none';
     if (app) app.style.display = 'grid';
-    const uname = document.getElementById('user-name');
-    if (uname) uname.textContent = currentUser.name;
+    document.getElementById('user-name').textContent = currentUser.name || '-';
+    document.getElementById('user-role').textContent = currentUser.role || 'user';
 
-    Promise.all([
+    applyRoleVisibility();
+
+    Promise.allSettled([
       loadDashboard(),
       loadMeters(),
       loadGoalsOptions(),
       loadProperties(),
-      loadEmployees().then(() => setTimeout(loadAllowances, 300)).catch(()=>{}),
-      loadBackups()
+      loadUsersIfAdmin()
     ]);
+
+    loadTarifasUI();
   }
 })();
+
+// -------------------------
+// Role: visibilidade admin x user
+// -------------------------
+function applyRoleVisibility() {
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Medidores: criar/reset/excluir/trocar token só admin
+  document.getElementById('admin-meters-create').style.display = isAdmin ? 'flex' : 'none';
+  // Imóveis: criar só admin
+  document.getElementById('admin-props-create').style.display = isAdmin ? 'flex' : 'none';
+  // Usuários (aba inteira) só admin
+  const usersBtn = [...document.querySelectorAll('.nav-btn')].find(b => b.textContent.includes('Usuários'));
+  if (usersBtn) usersBtn.style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('section-users').style.display = isAdmin ? 'none' : 'none';
+  // Form de criar usuário só admin
+  const uc = document.getElementById('admin-users-create');
+  if (uc) uc.style.display = isAdmin ? 'flex' : 'none';
+}
 
 // -------------------------
 // Navegação
 // -------------------------
 function showSection(key) {
-  const sections = ['dashboard','meters','readings','properties','finance','goals','reports','users','history'];
+  const sections = ['dashboard','meters','readings','properties','finance','goals','reports','users'];
   sections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el) el.style.display = (s === key) ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-  const map = { dashboard:0, meters:1, readings:2, properties:3, finance:4, goals:5, reports:6, users:7, history:8 };
+  const map = { dashboard:0, meters:1, readings:2, properties:3, finance:4, goals:5, reports:6, users:7 };
   const btn = document.querySelectorAll('.nav-btn')[map[key]];
   if (btn) btn.classList.add('active');
 
   if (key === 'dashboard') loadDashboard();
   if (key === 'readings') applyReadingsFilter();
   if (key === 'properties') loadProperties();
-  if (key === 'finance') { loadEmployees().then(() => setTimeout(loadAllowances, 300)).catch(()=>{}); }
-  if (key === 'history') loadBackups();
+  if (key === 'users') loadUsersIfAdmin();
 }
 
 // -------------------------
-// Utils
+// Utilitários
 // -------------------------
 function authHeader() {
   const token = localStorage.getItem('token');
@@ -183,73 +210,114 @@ function groupBy(arr, keyFn) {
   }
   return m;
 }
+function setDashTab(tab) {
+  currentDashTab = tab; // 'agua' | 'energia'
+  document.getElementById('tab-agua').classList.toggle('active', tab==='agua');
+  document.getElementById('tab-energia').classList.toggle('active', tab==='energia');
+  loadDashboard();
+}
 
 // -------------------------
-// DASHBOARD (agregação no frontend)
+// Financeiro (tarifas locais)
 // -------------------------
-let chartDaily, chartMonthly;
+function loadTarifasUI() {
+  const tA = localStorage.getItem('tarifa_agua') || '';
+  const tE = localStorage.getItem('tarifa_energia') || '';
+  const a = document.getElementById('tar-agua'); if (a) a.value = tA;
+  const e = document.getElementById('tar-energia'); if (e) e.value = tE;
+}
+function saveTarifas() {
+  const a = document.getElementById('tar-agua')?.value ?? '';
+  const e = document.getElementById('tar-energia')?.value ?? '';
+  localStorage.setItem('tarifa_agua', a);
+  localStorage.setItem('tarifa_energia', e);
+  alert('Tarifas salvas localmente.');
+}
 
+// -------------------------
+// DASHBOARD
+// -------------------------
 async function loadDashboard() {
   if (!TOKEN || !API) return;
-
   try {
     const res = await fetch(`${API}/api/readings?limit=1000`, { headers: authHeader() });
     const rows = await res.json();
 
     // Cards
     const totalReadings = rows.length;
-    const water = rows.filter(r => r.type === 'agua').reduce((s, r) => s + (Number(r.value ?? r.consumo_litros) || 0), 0);
-    const energy = rows.filter(r => r.type === 'energia').reduce((s, r) => s + (Number(r.value) || 0), 0);
+    const water = rows.filter(r => r.type === 'agua')
+      .reduce((s, r) => s + (Number(r.value ?? r.consumo_litros) || 0), 0);
+    const energy = rows.filter(r => r.type === 'energia')
+      .reduce((s, r) => s + (Number(r.value) || 0), 0);
 
-    const cR = document.getElementById('card-readings');
-    const cW = document.getElementById('card-water');
-    const cE = document.getElementById('card-energy');
-    if (cR) cR.textContent = totalReadings;
-    if (cW) cW.textContent = water.toFixed(1);
-    if (cE) cE.textContent = energy.toFixed(1);
+    document.getElementById('card-readings').textContent = totalReadings;
+    document.getElementById('card-water').textContent   = water.toFixed(1);
+    document.getElementById('card-energy').textContent  = energy.toFixed(1);
 
-    // Séries por dia (7 dias)
-    const byDay = groupBy(rows, r => (r.created_at || '').slice(0, 10));
+    // Aba principal (água/luz) com range
+    const range = Number(document.getElementById('dash-range').value || 7);
+    const since = new Date(); since.setDate(since.getDate() - (range - 1));
+    const sinceISO = fmtDateISO(since);
+    const filtered = rows.filter(d => (d.created_at || '').slice(0,10) >= sinceISO && d.type === currentDashTab);
+
+    const byDay = groupBy(filtered, r => (r.created_at || '').slice(0,10));
     const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+    for (let i = range-1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
       days.push(fmtDateISO(d));
     }
-    const dailyAgua = days.map(d => (byDay.get(d) || []).filter(x => x.type === 'agua')
+    const values = days.map(d => (byDay.get(d) || [])
       .reduce((s, x) => s + (Number(x.value ?? x.consumo_litros) || 0), 0));
-    const dailyEnergia = days.map(d => (byDay.get(d) || []).filter(x => x.type === 'energia')
-      .reduce((s, x) => s + (Number(x.value) || 0), 0));
-    buildDailyChart(days, dailyAgua, dailyEnergia);
+    buildMainChart(days, values, currentDashTab);
+
+    // Comparativo diário (7d)
+    const d7 = 7;
+    const s7 = new Date(); s7.setDate(s7.getDate()- (d7 - 1));
+    const s7ISO = fmtDateISO(s7);
+    const rows7 = rows.filter(d => (d.created_at || '').slice(0,10) >= s7ISO);
+    const byDayAll = groupBy(rows7, r => (r.created_at || '').slice(0,10));
+    const days7 = []; for (let i= d7-1; i>=0; i--) { const d=new Date(); d.setDate(d.getDate()-i); days7.push(fmtDateISO(d)); }
+    const dailyAgua = days7.map(d => (byDayAll.get(d) || []).filter(x=>x.type==='agua')
+      .reduce((s,x)=> s + (Number(x.value ?? x.consumo_litros) || 0),0));
+    const dailyEnergia = days7.map(d => (byDayAll.get(d) || []).filter(x=>x.type==='energia')
+      .reduce((s,x)=> s + (Number(x.value) || 0),0));
+    buildDailyChart(days7, dailyAgua, dailyEnergia);
 
     // Mensal (6 meses)
     const byMonth = groupBy(rows, r => {
       const d = new Date(r.created_at);
       if (Number.isNaN(d.getTime())) return '';
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     });
     const months = [];
     const base = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    for (let i=5;i>=0;i--) {
+      const d = new Date(base.getFullYear(), base.getMonth()-i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     }
-    const mAgua = months.map(m => (byMonth.get(m) || []).filter(x => x.type === 'agua')
-      .reduce((s, x) => s + (Number(x.value ?? x.consumo_litros) || 0), 0));
-    const mEnergia = months.map(m => (byMonth.get(m) || []).filter(x => x.type === 'energia')
-      .reduce((s, x) => s + (Number(x.value) || 0), 0));
+    const mAgua = months.map(m => (byMonth.get(m)||[]).filter(x=>x.type==='agua')
+      .reduce((s,x)=> s + (Number(x.value ?? x.consumo_litros)||0),0));
+    const mEnergia = months.map(m => (byMonth.get(m)||[]).filter(x=>x.type==='energia')
+      .reduce((s,x)=> s + (Number(x.value)||0),0));
     buildMonthlyChart(months, mAgua, mEnergia);
 
     // Alertas
-    renderAlerts();
+    renderAlerts(rows);
   } catch (e) {
     console.warn('Erro dashboard:', e.message);
   }
 }
-
+function buildMainChart(labels, data, tab) {
+  const ctx = document.getElementById('chart-main'); if (!ctx) return;
+  if (chartMain) chartMain.destroy();
+  chartMain = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: tab==='agua' ? 'Água (L)' : 'Energia (kWh)', data }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+  });
+}
 function buildDailyChart(days, agua, energia) {
-  const ctx = document.getElementById('chart-daily');
-  if (!ctx) return;
+  const ctx = document.getElementById('chart-daily'); if (!ctx) return;
   if (chartDaily) chartDaily.destroy();
   chartDaily = new Chart(ctx.getContext('2d'), {
     type: 'bar',
@@ -258,18 +326,20 @@ function buildDailyChart(days, agua, energia) {
   });
 }
 function buildMonthlyChart(months, agua, energia) {
-  const ctx = document.getElementById('chart-monthly');
-  if (!ctx) return;
+  const ctx = document.getElementById('chart-monthly'); if (!ctx) return;
   if (chartMonthly) chartMonthly.destroy();
   chartMonthly = new Chart(ctx.getContext('2d'), {
     type: 'line',
-    data: { labels: months, datasets: [{ label: 'Água (L)', data: agua, tension: 0.2 }, { label: 'Energia (kWh)', data: energia, tension: 0.2 }] },
+    data: { labels: months, datasets: [
+      { label: 'Água (L)', data: agua, tension: 0.2 },
+      { label: 'Energia (kWh)', data: energia, tension: 0.2 }
+    ] },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
   });
 }
 
 // -------------------------
-// MEDIDORES — listar, criar, token, reset, excluir
+// MEDIDORES — listar, criar, token, reset, excluir (admin)
 // -------------------------
 async function loadMeters() {
   if (!API) return;
@@ -285,47 +355,41 @@ async function loadMeters() {
     ul.innerHTML = '';
     list.forEach(m => {
       const li = document.createElement('li');
-      li.style.display = 'grid';
-      li.style.gridTemplateColumns = '1fr';
-      li.style.gap = '8px';
-      li.style.border = '1px solid var(--line)';
-      li.style.borderRadius = '10px';
-      li.style.padding = '12px';
-
-      const endpoint = `${API}/api/readings?token=${m.token}`;
-
+      const endpointRaw = `${API}/api/readings/raw?token=${m.token}`;
       li.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
-          <div>
-            <strong>${m.name}</strong>
-            <small style="opacity:.8">(${m.type})</small>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="theme-toggle" onclick="resetMeter(${m.id})">🔁 Resetar consumo</button>
-            <button class="theme-toggle" onclick="regenerateToken(${m.id})">🔑 Regenerar token</button>
-            <button class="theme-toggle" onclick="deleteMeter(${m.id}, '${(m.name||'').replaceAll(`'`,`\\'`)}')">🗑️ Excluir</button>
+        <div class="row">
+          <div><strong>${m.name}</strong> <small class="muted">(${m.type})</small></div>
+          <div class="btns">
+            <button class="theme-toggle admin-only" onclick="resetMeter(${m.id})">🔁 Reset</button>
+            <button class="theme-toggle admin-only" onclick="regenerateToken(${m.id})">🔑 Token</button>
+            <button class="theme-toggle admin-only" style="background:#ef4444;" onclick="deleteMeter(${m.id}, '${(m.name||'').replaceAll(`'`,`\\'`)}')">🗑</button>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--muted);word-break:break-all;">
+        <div class="muted" style="font-size:12px;word-break:break-all;">
           <div><b>Token:</b> <code>${m.token || '-'}</code></div>
-          <div><b>Endpoint (HTTP):</b> <code>${endpoint}</code></div>
+          <div><b>Endpoint GET (equipamento):</b> <code>${endpointRaw}&value=123&consumo_litros=0&vazao_lh=0</code></div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button onclick="copyText('${endpoint.replaceAll(`'`,`\\'`)}')">Copiar endpoint</button>
+        <div class="btns">
+          <button onclick="copyText('${endpointRaw.replaceAll(`'`,`\\'`)}')">Copiar endpoint base</button>
           <button onclick="copyText('${m.token || ''}')">Copiar token</button>
         </div>
       `;
       ul.appendChild(li);
     });
 
-    // metas select
+    // popular metas select
     const sel = document.getElementById('goal-meter');
     if (sel) sel.innerHTML = list.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+
+    // popular checkboxes no cadastro de usuários
+    renderUserMeterCheckboxes(list);
+    // esconder botões admin se não for admin
+    const isAdmin = currentUser?.role === 'admin';
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-block' : 'none');
   } catch (e) {
     ul.innerHTML = 'Erro ao carregar medidores';
   }
 }
-
 async function addMeter() {
   const name = document.getElementById('meter-name').value.trim();
   const type = document.getElementById('meter-type').value;
@@ -350,7 +414,10 @@ async function addMeter() {
 async function regenerateToken(id) {
   if (!confirm('Gerar novo token? O antigo vai parar de funcionar.')) return;
   try {
-    const res = await fetch(`${API}/api/meters/${id}/token/regenerate`, { method: 'POST', headers: authHeader() });
+    const res = await fetch(`${API}/api/meters/${id}/token/regenerate`, {
+      method: 'POST',
+      headers: authHeader()
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao regenerar token');
     await loadMeters();
@@ -360,8 +427,8 @@ async function regenerateToken(id) {
   }
 }
 async function resetMeter(id) {
-  const defaultTag = prompt('Opcional: nome do ciclo (ex.: Kitnet 01 — João, nov/2025). Deixe em branco para "Reset Manual".', '');
-  if (!confirm('Confirmar reset? O consumo atual será zerado e irá para o histórico.')) return;
+  const defaultTag = prompt('Opcional: nome do ciclo (ex.: Kitnet 01 — João, nov/2025). Deixe vazio para "Reset Manual".', '');
+  if (!confirm('Confirmar reset? O consumo atual será zerado e enviado ao histórico.')) return;
 
   try {
     const res = await fetch(`${API}/api/meters/${id}/reset`, {
@@ -374,7 +441,6 @@ async function resetMeter(id) {
     alert(`Reset concluído. Leituras salvas no histórico (${data.backup_rows || 0} linhas).`);
     await loadMeters();
     applyReadingsFilter().catch(()=>{});
-    loadBackups().catch(()=>{});
   } catch (e) {
     alert(e.message);
   }
@@ -419,19 +485,19 @@ async function applyReadingsFilter() {
   });
 }
 function clearReadingsFilter() {
-  if (document.getElementById('filter-type')) document.getElementById('filter-type').value = '';
-  if (document.getElementById('date-from')) document.getElementById('date-from').value = '';
-  if (document.getElementById('date-to')) document.getElementById('date-to').value = '';
+  const a = id => document.getElementById(id);
+  if (a('filter-type')) a('filter-type').value = '';
+  if (a('date-from')) a('date-from').value = '';
+  if (a('date-to')) a('date-to').value = '';
   applyReadingsFilter();
 }
-
 async function exportToExcel() {
   const rows = [];
   document.querySelectorAll('#readings-table tbody tr').forEach(tr => {
     const tds = [...tr.querySelectorAll('td')].map(td => td.textContent);
     rows.push({ ID: tds[0], Medidor: tds[1], Tipo: tds[2], Valor: tds[3], Data: tds[4] });
   });
-  if (!rows.length) { alert('Nada para exportar. Gere uma listagem em Leituras.'); return; }
+  if (!rows.length) { alert('Nada para exportar.'); return; }
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Leituras');
@@ -447,7 +513,7 @@ async function exportPDF() {
     const tds = [...tr.querySelectorAll('td')].map(td => td.textContent);
     body.push(tds);
   });
-  if (!body.length) { alert('Nada para exportar. Gere uma listagem em Leituras.'); return; }
+  if (!body.length) { alert('Nada para exportar.'); return; }
   doc.autoTable({ head, body, startY: 22 });
   doc.save(`leituras_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
@@ -455,7 +521,10 @@ async function exportPDF() {
 // -------------------------
 // METAS / ALERTAS
 // -------------------------
-async function loadGoalsOptions() { await loadMeters(); }
+async function loadGoalsOptions() {
+  // ao carregar medidores, o select é populado
+  await loadMeters();
+}
 async function saveGoal() {
   const sel = document.getElementById('goal-meter');
   const goal_daily = Number(document.getElementById('goal-daily').value || 0);
@@ -465,28 +534,29 @@ async function saveGoal() {
 
   if (!goal_daily || !warn_percent) return alert('Preencha meta e %');
 
-  await fetch(API + '/api/goals', {
+  const r = await fetch(API + '/api/goals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify({ meter_id, meter_name, goal_daily, warn_percent })
   });
+  const j = await r.json();
+  if (!r.ok) return alert(j.error || 'Falha ao salvar meta');
   alert('Meta salva!');
   renderAlerts();
 }
 async function deleteGoal() {
-  alert('Remoção direta por meter_id ainda não exposta no backend. Se precisar, adiciono /api/goals/:meter_id (DELETE).');
+  alert('Remoção direta por meter_id ainda não exposta no backend. Posso incluir /api/goals/:meter_id (DELETE) se precisar.');
 }
-async function renderAlerts() {
-  const ul = document.getElementById('alerts');
-  if (!ul) return;
+async function renderAlerts(rowsOpt) {
+  const ul = document.getElementById('alerts'); if (!ul) return;
   ul.innerHTML = '';
 
   const [goalsRes, lastRes] = await Promise.all([
     fetch(API + '/api/goals', { headers: authHeader() }),
-    fetch(API + '/api/readings?limit=500', { headers: authHeader() })
+    rowsOpt ? Promise.resolve({ ok:true, json: async()=> rowsOpt }) : fetch(API + '/api/readings?limit=500', { headers: authHeader() })
   ]);
   const goals = await goalsRes.json();
-  const rows = await lastRes.json();
+  const rows = rowsOpt || await lastRes.json();
 
   const today = new Date().toISOString().slice(0, 10);
   const todayRows = rows.filter(r => (r.created_at || '').slice(0, 10) === today);
@@ -510,48 +580,16 @@ async function renderAlerts() {
 }
 
 // -------------------------
-// RELATÓRIOS — gera tabela pelas leituras
+// RELATÓRIOS (tabela por período) — usando Leituras
 // -------------------------
-async function generateReport() {
-  const days = Number(document.getElementById('report-range')?.value || '7');
-
-  const res = await fetch(`${API}/api/readings?limit=1000`, { headers: authHeader() });
-  const data = await res.json();
-
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-  const sinceISO = fmtDateISO(since);
-
-  const filtered = data.filter(d => (d.created_at || '').slice(0, 10) >= sinceISO);
-
-  const perDay = groupBy(filtered, r => (r.created_at || '').slice(0, 10));
-  const rows = [];
-  for (const [day, list] of Array.from(perDay.entries()).sort()) {
-    const acqua = list.filter(x => x.type === 'agua')
-      .reduce((s, x) => s + (Number(x.value ?? x.consumo_litros) || 0), 0);
-    const power = list.filter(x => x.type === 'energia')
-      .reduce((s, x) => s + (Number(x.value) || 0), 0);
-
-    if (acqua) rows.push({ day, type: 'agua', total: acqua });
-    if (power) rows.push({ day, type: 'energia', total: power });
-  }
-
-  const tb = document.querySelector('#report-table tbody');
-  if (!tb) return;
-  tb.innerHTML = '';
-  rows.forEach(d => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${d.day}</td><td>${d.type}</td><td>${Number(d.total || 0).toFixed(2)}</td>`;
-    tb.appendChild(tr);
-  });
-}
+// (Se quiser reativar a aba Relatórios, basta criar a UI — a lógica aproveita applyReadingsFilter)
 
 // -------------------------
-// IMÓVEIS (Fase 2)
+// IMÓVEIS (simples)
 // -------------------------
 async function loadProperties() {
   try {
-    const res = await fetch(`${API}/api/imoveis`);
+    const res = await fetch(`${API}/api/imoveis`, { headers: authHeader() });
     const data = await res.json();
     const tbody = document.querySelector('#properties-table tbody');
     if (!tbody) return;
@@ -571,11 +609,14 @@ async function createProperty() {
   const responsavel = document.getElementById('prop-owner').value.trim();
   if (!nome) return alert('Informe o nome do imóvel');
 
-  await fetch(`${API}/api/imoveis`, {
+  const r = await fetch(`${API}/api/imoveis`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type':'application/json', ...authHeader()},
     body: JSON.stringify({ nome, endereco, responsavel })
   });
+  const j = await r.json();
+  if (!r.ok) return alert(j.error || 'Falha ao cadastrar imóvel');
+
   document.getElementById('prop-name').value = '';
   document.getElementById('prop-address').value = '';
   document.getElementById('prop-owner').value = '';
@@ -583,198 +624,94 @@ async function createProperty() {
 }
 
 // -------------------------
-// FINANCEIRO — Funcionários/Vales (Fase 2)
+// USUÁRIOS (admin)
 // -------------------------
-async function loadEmployees() {
-  try {
-    const res = await fetch(`${API}/api/funcionarios`);
-    const data = await res.json();
-    const tbody = document.querySelector('#employees-table tbody');
-    const select = document.getElementById('allowance-emp');
-    if (tbody) tbody.innerHTML = '';
-    if (select) select.innerHTML = '';
-
-    data.forEach(f => {
-      if (tbody) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${f.id}</td><td>${f.nome}</td><td>${f.cargo || '-'}</td><td>${f.salario_base ?? '-'}</td>`;
-        tbody.appendChild(tr);
-      }
-      if (select) {
-        const opt = document.createElement('option');
-        opt.value = f.id;
-        opt.textContent = f.nome;
-        select.appendChild(opt);
-      }
-    });
-  } catch (e) {
-    console.error('Erro ao carregar funcionários:', e.message);
-  }
+function renderUserMeterCheckboxes(meters) {
+  const box = document.getElementById('userCreate-meters');
+  if (!box) return;
+  box.innerHTML = meters.map(m => `
+    <label><input type="checkbox" value="${m.id}" /> ${m.name} <small class="muted">(${m.type})</small></label>
+  `).join('');
 }
-async function addEmployee() {
-  const nome = document.getElementById('emp-name').value.trim();
-  const cargo = document.getElementById('emp-role').value.trim();
-  const salario_base = parseFloat((document.getElementById('emp-salary').value || '').replace(',', '.')) || 0;
-  if (!nome) return alert('Informe o nome do funcionário');
-
-  await fetch(`${API}/api/funcionarios`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, cargo, salario_base })
-  });
-
-  document.getElementById('emp-name').value = '';
-  document.getElementById('emp-role').value = '';
-  document.getElementById('emp-salary').value = '';
-  loadEmployees();
+function getCheckedMeters(containerId) {
+  const box = document.getElementById(containerId);
+  if (!box) return [];
+  return [...box.querySelectorAll('input[type="checkbox"]:checked')].map(i => Number(i.value));
 }
-async function loadAllowances() {
-  const sel = document.getElementById('allowance-emp');
-  const tbody = document.querySelector('#allowances-table tbody');
-  if (!sel || !tbody) return;
-
-  const funcionario_id = sel.value;
-  if (!funcionario_id) { tbody.innerHTML = ''; return; }
-
+async function loadUsersIfAdmin() {
+  if (currentUser?.role !== 'admin') return;
   try {
-    const res = await fetch(`${API}/api/vales/${funcionario_id}`);
-    const data = await res.json();
-    const empName = sel.options[sel.selectedIndex]?.text || '-';
-    tbody.innerHTML = '';
-    data.forEach(v => {
+    const r = await fetch(API + '/api/users', { headers: authHeader() });
+    const users = await r.json();
+    const tb = document.querySelector('#users-table tbody'); if (!tb) return;
+    tb.innerHTML = '';
+    users.forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${empName}</td><td>${v.data}</td><td>R$ ${Number(v.valor).toFixed(2)}</td><td>${v.descricao || '-'}</td>`;
-      tbody.appendChild(tr);
+      tr.innerHTML = `
+        <td>${u.id}</td>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td>${(u.meter_ids_permitidos||[]).join(', ') || '-'}</td>
+        <td>
+          <button class="theme-toggle" onclick='promptEditUser(${u.id}, ${JSON.stringify(u.meter_ids_permitidos||[]).replaceAll("'", "\\'")})'>Editar</button>
+          <button class="theme-toggle" style="background:#ef4444;" onclick="deleteUser(${u.id})">Remover</button>
+        </td>
+      `;
+      tb.appendChild(tr);
     });
   } catch (e) {
-    console.error('Erro ao carregar vales:', e.message);
+    console.error('Erro ao listar usuários', e.message);
   }
-}
-async function addAllowance() {
-  const funcionario_id = document.getElementById('allowance-emp').value;
-  const data = document.getElementById('allowance-date').value;
-  const valor = parseFloat((document.getElementById('allowance-value').value || '').replace(',', '.'));
-  const descricao = document.getElementById('allowance-desc').value.trim();
-
-  if (!funcionario_id || !data || !valor) return alert('Preencha funcionário, data e valor');
-
-  await fetch(`${API}/api/vales`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ funcionario_id, data, valor, descricao })
-  });
-
-  document.getElementById('allowance-date').value = '';
-  document.getElementById('allowance-value').value = '';
-  document.getElementById('allowance-desc').value = '';
-  loadAllowances();
-}
-
-// -------------------------
-// HISTÓRICO DE RESETS (Backups) — listar e restaurar
-// -------------------------
-async function loadBackups() {
-  const tbody = document.querySelector('#history-table tbody');
-  if (!tbody) return;
-  const cycleFilter = document.getElementById('history-cycle')?.value || '';
-  const meterFilter = document.getElementById('history-meter')?.value || '';
-  const from = document.getElementById('history-from')?.value || '';
-  const to = document.getElementById('history-to')?.value || '';
-
-  const q = new URLSearchParams();
-  if (cycleFilter) q.set('cycle', cycleFilter);
-  if (meterFilter) q.set('meter_id', meterFilter);
-  if (from) q.set('from', from);
-  if (to) q.set('to', to);
-  q.set('limit', '1000');
-
-  const res = await fetch(`${API}/api/backups?` + q.toString(), { headers: authHeader() });
-  const data = await res.json();
-
-  // popular select de medidores se existir
-  const sel = document.getElementById('history-meter');
-  if (sel && sel.options.length <= 1) {
-    // carrega medidores e popula
-    try {
-      const r = await fetch(`${API}/api/meters`, { headers: authHeader() });
-      const meters = await r.json();
-      meters.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = `${m.name} (${m.type})`;
-        sel.appendChild(opt);
-      });
-    } catch {}
-  }
-
-  tbody.innerHTML = '';
-  if (!data.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="7" style="color:#94a3b8;">Sem backups ainda.</td>`;
-    tbody.appendChild(tr);
-    return;
-  }
-
-  data.forEach(b => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="checkbox" class="backup-check" value="${b.id}"/></td>
-      <td>${b.id}</td>
-      <td>${b.cycle_tag || '-'}</td>
-      <td>${b.meter_name || '-'}</td>
-      <td>${b.type || '-'}</td>
-      <td>${b.value ?? b.consumo_litros ?? '-'}</td>
-      <td>${b.backup_at}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-async function restoreSelected(purge) {
-  const checks = Array.from(document.querySelectorAll('.backup-check:checked'));
-  if (!checks.length) return alert('Selecione pelo menos 1 backup para restaurar.');
-
-  const ids = checks.map(c => Number(c.value));
-  const res = await fetch(`${API}/api/backups/restore`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeader() },
-    body: JSON.stringify({ backup_ids: ids, purge: !!purge })
-  });
-  const data = await res.json();
-  if (!res.ok) return alert(data.error || 'Falha ao restaurar');
-
-  alert(`Restore ok — ${data.restored} leituras restauradas${purge ? ` e ${data.removed} removidas do backup` : ''}.`);
-  applyReadingsFilter().catch(()=>{});
-  loadBackups();
-}
-
-async function restoreByCycle() {
-  const meter_id = document.getElementById('history-meter')?.value || '';
-  const cycle = document.getElementById('history-cycle')?.value || '';
-  const purge = document.getElementById('history-purge')?.checked || false;
-  if (!meter_id || !cycle) return alert('Informe um medidor e uma etiqueta de ciclo.');
-
-  const res = await fetch(`${API}/api/backups/restore`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeader() },
-    body: JSON.stringify({ meter_id: Number(meter_id), cycle_tag: cycle, purge })
-  });
-  const data = await res.json();
-  if (!res.ok) return alert(data.error || 'Falha ao restaurar ciclo');
-
-  alert(`Restore por ciclo ok — ${data.restored} leituras restauradas${purge ? ` e ${data.removed} removidas do backup` : ''}.`);
-  applyReadingsFilter().catch(()=>{});
-  loadBackups();
-}
-
-// -------------------------
-// (Opcional) Usuários — placeholder
-// -------------------------
-async function loadUsers() {
-  const tb = document.querySelector('#users-table tbody');
-  if (!tb) return;
-  tb.innerHTML = `<tr><td colspan="5">Gerenciamento de usuários não exposto no backend (multiusuário virá na próxima fase).</td></tr>`;
 }
 async function createUser() {
-  alert('Criação de usuários pelo frontend ainda não está exposta no backend. Posso adicionar rotas /api/users na próxima fase.');
+  const name = document.getElementById('userCreate-name').value.trim();
+  const email = document.getElementById('userCreate-email').value.trim();
+  const password = document.getElementById('userCreate-password').value;
+  const role = document.getElementById('userCreate-role').value;
+  const meters = getCheckedMeters('userCreate-meters');
+
+  if (!name || !email || !password) return alert('Preencha nome, e-mail e senha');
+  const r = await fetch(API + '/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', ...authHeader() },
+    body: JSON.stringify({ name, email, password, role, meter_ids_permitidos: meters })
+  });
+  const j = await r.json();
+  if (!r.ok) return alert(j.error || 'Falha ao criar usuário');
+  alert('Usuário criado!');
+  document.getElementById('userCreate-name').value = '';
+  document.getElementById('userCreate-email').value = '';
+  document.getElementById('userCreate-password').value = '';
+  document.getElementById('userCreate-role').value = 'user';
+  document.querySelectorAll('#userCreate-meters input[type="checkbox"]').forEach(c => c.checked = false);
+  loadUsersIfAdmin();
+}
+function promptEditUser(id, currentMeters) {
+  const newName = prompt('Novo nome (deixe vazio para manter):', '');
+  const newEmail = prompt('Novo e-mail (deixe vazio para manter):', '');
+  const newPassword = prompt('Nova senha (deixe vazio para manter):', '');
+  const newRole = prompt('Role (admin|user, deixe vazio para manter):', '');
+  const newMetersCsv = prompt('IDs de medidores permitidos (separe por vírgula). Atual irá substituir o atual:', (currentMeters || []).join(','));
+  const meter_ids_permitidos = newMetersCsv ? newMetersCsv.split(',').map(s => Number(s.trim())).filter(Boolean) : undefined;
+  updateUser(id, { name: newName || undefined, email: newEmail || undefined, password: newPassword || undefined, role: newRole || undefined, meter_ids_permitidos });
+}
+async function updateUser(id, payload) {
+  const r = await fetch(API + '/api/users/' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type':'application/json', ...authHeader() },
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if (!r.ok) return alert(j.error || 'Falha ao atualizar usuário');
+  alert('Usuário atualizado!');
+  loadUsersIfAdmin();
+}
+async function deleteUser(id) {
+  if (!confirm('Remover este usuário?')) return;
+  const r = await fetch(API + '/api/users/' + id, { method:'DELETE', headers: authHeader() });
+  const j = await r.json();
+  if (!r.ok) return alert(j.error || 'Falha ao remover');
+  alert('Usuário removido!');
+  loadUsersIfAdmin();
 }
