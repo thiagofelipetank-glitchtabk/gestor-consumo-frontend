@@ -1,241 +1,129 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestor de Consumo — Pro</title>
-  <link rel="icon" href="assets/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestor de Consumo</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- libs do frontend -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
-  <!-- indicador topo -->
-  <div class="top-indicator">
-    <span id="server-indicator" class="dot red"></span>
-    <span id="server-label" class="muted">Checando…</span>
-    <button onclick="toggleTheme()" class="theme-toggle">🌓 Tema</button>
-  </div>
-
-  <!-- tela de checagem -->
-  <section id="checking" class="auth">
+  <!-- ================= LOGIN ================= -->
+  <section id="login-section" class="auth">
     <div class="auth-card">
       <h1>Gestor de Consumo</h1>
-      <p class="subtitle">Acesse seu painel</p>
-      <div class="msg" id="server-status">Checando…</div>
+      <p class="subtitle">Acesse sua conta</p>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" placeholder="ex: usuario@email.com" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <input id="password" type="password" placeholder="********" required />
+      </div>
+
+      <button id="login-btn">Entrar</button>
+      <p id="login-msg" class="msg"></p>
     </div>
   </section>
 
-  <!-- login -->
-  <section id="auth" class="auth" style="display:none;">
-    <div class="auth-card">
-      <h1>Gestor de Consumo</h1>
-      <p class="subtitle">Acesse seu painel</p>
-
-      <div class="field">
-        <label>E-mail</label>
-        <input type="email" id="email" placeholder="" autocomplete="username" />
-      </div>
-      <div class="field">
-        <label>Senha</label>
-        <input type="password" id="password" placeholder="" autocomplete="current-password" />
-      </div>
-      <button onclick="login()">Entrar</button>
-      <div class="msg" id="login-msg"></div>
-    </div>
-  </section>
-
-  <!-- app -->
-  <div id="app" class="app" style="display:none;">
+  <!-- ================= APLICATIVO ================= -->
+  <section id="app" class="app" style="display:none;">
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
         <div class="logo">GC</div>
         <div class="brand-text">
-          <strong>Gestor Pro</strong>
-          <span id="user-name">—</span>
-          <span id="user-role" class="role-badge">—</span>
+          <strong>Gestor</strong>
+          <span>de Consumo</span>
         </div>
       </div>
-      <nav>
-        <button class="nav-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
-        <button class="nav-btn" onclick="showSection('meters')">🧭 Medidores</button>
-        <button class="nav-btn" onclick="showSection('readings')">📈 Leituras</button>
-        <button class="nav-btn" onclick="showSection('properties')">🏠 Imóveis</button>
-        <button class="nav-btn" onclick="showSection('finance')">💼 Financeiro</button>
-        <button class="nav-btn" onclick="showSection('goals')">🎯 Metas</button>
-        <button class="nav-btn" onclick="showSection('users')">👥 Usuários</button>
-        <button class="nav-btn" onclick="logout()">🚪 Sair</button>
-      </nav>
+
+      <button class="nav-btn active" data-target="dashboard">📊 Dashboard</button>
+      <button class="nav-btn" data-target="agua">💧 Água</button>
+      <button class="nav-btn" data-target="energia">⚡ Energia</button>
+      <button class="nav-btn" id="users-btn" data-target="usuarios">👥 Usuários</button>
+      <button class="nav-btn" data-target="financeiro">💼 Financeiro</button>
+      <button id="logout-btn" class="nav-btn">🚪 Sair</button>
     </aside>
 
+    <!-- Conteúdo principal -->
     <main class="main">
       <!-- DASHBOARD -->
-      <section id="section-dashboard">
-        <div class="topbar"><h2>Dashboard</h2></div>
+      <section id="dashboard" class="section active">
+        <h2>📊 Visão Geral</h2>
+        <div id="dashboard-cards" class="cards"></div>
+      </section>
 
-        <div class="cards quick-cards">
-          <div class="card"><div>Total Leituras</div><div id="card-readings" class="big">—</div></div>
-          <div class="card"><div>Água (L)</div><div id="card-water" class="big">—</div></div>
-          <div class="card"><div>Energia (kWh)</div><div id="card-energy" class="big">—</div></div>
+      <!-- ÁGUA -->
+      <section id="agua" class="section">
+        <h2>💧 Consumo de Água</h2>
+        <div class="filters">
+          <select id="agua-meter"></select>
+          <select id="agua-range">
+            <option value="7">7 dias</option>
+            <option value="30">30 dias</option>
+            <option value="90">90 dias</option>
+          </select>
+          <button id="agua-apply">Aplicar</button>
         </div>
-
-        <div class="card">
-          <div class="tabs">
-            <button id="tab-agua" class="tab active" onclick="setDashTab('agua')">Água</button>
-            <button id="tab-energia" class="tab" onclick="setDashTab('energia')">Energia</button>
-            <div class="tab-spacer"></div>
-            <select id="dash-range" onchange="loadDashboard()">
-              <option value="1">Hoje</option>
-              <option value="7" selected>Últimos 7 dias</option>
-              <option value="30">Últimos 30 dias</option>
-            </select>
-          </div>
-          <canvas id="chart-main" height="140"></canvas>
-        </div>
-
         <div class="cards">
-          <div class="card">
-            <h3>Comparativo Diário (7 dias)</h3>
-            <canvas id="chart-daily" height="120"></canvas>
-          </div>
-          <div class="card">
-            <h3>Comparativo Mensal (6 meses)</h3>
-            <canvas id="chart-monthly" height="120"></canvas>
-          </div>
+          <div class="card"><strong id="agua-total">0 m³</strong><p>Total</p></div>
+          <div class="card"><strong id="agua-cost">R$ 0,00</strong><p>Custo</p></div>
         </div>
-
-        <div class="card">
-          <h3>Alertas de Meta</h3>
-          <ul id="alerts" class="alert-list"></ul>
-        </div>
+        <canvas id="agua-chart" height="120"></canvas>
       </section>
 
-      <!-- MEDIDORES -->
-      <section id="section-meters" style="display:none;">
-        <h2>Medidores</h2>
-        <div id="admin-meters-create" class="card create-row" style="display:none;">
-          <input id="meter-name" placeholder="Nome do medidor" />
-          <select id="meter-type">
-            <option value="agua">Água</option>
-            <option value="energia">Energia</option>
+      <!-- ENERGIA -->
+      <section id="energia" class="section">
+        <h2>⚡ Consumo de Energia</h2>
+        <div class="filters">
+          <select id="energia-meter"></select>
+          <select id="energia-range">
+            <option value="7">7 dias</option>
+            <option value="30">30 dias</option>
+            <option value="90">90 dias</option>
           </select>
-          <button class="theme-toggle" onclick="addMeter()">Adicionar</button>
-          <button class="theme-toggle" onclick="loadMeters()">Atualizar</button>
+          <button id="energia-apply">Aplicar</button>
         </div>
-
-        <div class="card">
-          <ul id="meter-list" class="meter-list"></ul>
+        <div class="cards">
+          <div class="card"><strong id="energia-total">0 kWh</strong><p>Total</p></div>
+          <div class="card"><strong id="energia-cost">R$ 0,00</strong><p>Custo</p></div>
         </div>
+        <canvas id="energia-chart" height="120"></canvas>
       </section>
 
-      <!-- LEITURAS -->
-      <section id="section-readings" style="display:none;">
-        <h2>Leituras</h2>
-        <div class="card filters">
-          <div>
-            <label>Tipo</label><br/>
-            <select id="filter-type">
-              <option value="">Todos</option>
-              <option value="agua">Água</option>
-              <option value="energia">Energia</option>
-            </select>
-          </div>
-          <div><label>De</label><br/><input type="date" id="date-from"></div>
-          <div><label>Até</label><br/><input type="date" id="date-to"></div>
-          <button class="theme-toggle" onclick="applyReadingsFilter()">Aplicar</button>
-          <button class="theme-toggle" onclick="clearReadingsFilter()">Limpar</button>
-          <button class="theme-toggle" onclick="exportToExcel()">📦 Excel</button>
-          <button class="theme-toggle" onclick="exportPDF()">🧾 PDF</button>
-        </div>
-        <div class="card">
-          <table class="table" id="readings-table">
-            <thead><tr><th>ID</th><th>Medidor</th><th>Tipo</th><th>Valor</th><th>Data</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+      <!-- USUÁRIOS -->
+      <section id="usuarios" class="section">
+        <h2>👥 Gerenciar Usuários</h2>
+        <p>Apenas o admin pode cadastrar novos usuários e definir quais medidores cada um pode acessar.</p>
+        <button id="create-user-btn">+ Novo Usuário</button>
+        <table class="table">
+          <thead>
+            <tr><th>ID</th><th>Nome</th><th>E-mail</th></tr>
+          </thead>
+          <tbody id="visible-meters-body"></tbody>
+        </table>
       </section>
 
-      <!-- IMÓVEIS -->
-      <section id="section-properties" style="display:none;">
-        <h2>Imóveis</h2>
-        <div id="admin-props-create" class="card create-row" style="display:none;">
-          <div><label>Nome do Imóvel</label><br/><input id="prop-name" placeholder="Ex.: Kitnet 01" /></div>
-          <div><label>Endereço</label><br/><input id="prop-address" placeholder="Rua, nº, bairro" /></div>
-          <div><label>Responsável</label><br/><input id="prop-owner" placeholder="Nome do responsável" /></div>
-          <button class="theme-toggle" onclick="createProperty()">Cadastrar</button>
-          <button class="theme-toggle" onclick="loadProperties()">Atualizar</button>
-        </div>
+      <!-- FINANCEIRO -->
+      <section id="financeiro" class="section">
+        <h2>💼 Tarifas</h2>
+        <p>Defina o valor atual do kWh e do m³ (apenas admin pode alterar).</p>
         <div class="card">
-          <table class="table" id="properties-table">
-            <thead><tr><th>ID</th><th>Nome</th><th>Endereço</th><th>Responsável</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- FINANCEIRO (tarifas locais) -->
-      <section id="section-finance" style="display:none;">
-        <h2>Financeiro</h2>
-        <div class="card create-row">
-          <div>
-            <label>Tarifa Água (R$/m³)</label><br/>
-            <input id="tar-agua" type="number" step="0.0001" placeholder="0.00" />
-          </div>
-          <div>
-            <label>Tarifa Energia (R$/kWh)</label><br/>
-            <input id="tar-energia" type="number" step="0.0001" placeholder="0.00" />
-          </div>
-          <button class="theme-toggle" onclick="saveTarifas()">Salvar tarifas</button>
-          <span class="muted">* Salvo neste navegador por enquanto.</span>
-        </div>
-        <div class="card">
-          <p class="muted">As tarifas acima são usadas para estimar custo nas telas/relatórios. Em próxima etapa podemos salvar no backend.</p>
-        </div>
-      </section>
-
-      <!-- METAS -->
-      <section id="section-goals" style="display:none;">
-        <h2>Metas</h2>
-        <div class="card create-row">
-          <select id="goal-meter"></select>
-          <input type="number" id="goal-daily" placeholder="Meta diária" min="0" step="0.01"/>
-          <input type="number" id="goal-warn" placeholder="% aviso (ex: 90)" min="1" max="99"/>
-          <button class="theme-toggle" onclick="saveGoal()">Salvar</button>
-          <button class="theme-toggle" onclick="deleteGoal()">Remover</button>
-        </div>
-        <div class="card"><ul id="alerts-goals" class="alert-list"></ul></div>
-      </section>
-
-      <!-- USUÁRIOS (admin) -->
-      <section id="section-users" style="display:none;">
-        <h2>Usuários (Admin)</h2>
-
-        <div id="admin-users-create" class="card create-row" style="display:none;">
-          <input id="userCreate-name" placeholder="Nome" />
-          <input id="userCreate-email" placeholder="E-mail" />
-          <input id="userCreate-password" placeholder="Senha" />
-          <select id="userCreate-role">
-            <option value="user">Usuário</option>
-            <option value="admin">Admin</option>
-          </select>
-          <div id="userCreate-meters" class="checkbox-grid"></div>
-          <button class="theme-toggle" onclick="createUser()">Adicionar</button>
-          <button class="theme-toggle" onclick="loadUsers()">Atualizar</button>
-        </div>
-
-        <div class="card">
-          <table class="table" id="users-table">
-            <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Função</th><th>Medidores</th><th>Ações</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <label>Tarifa Energia (R$/kWh)</label>
+          <input id="kwh-price" type="number" step="0.01" />
+          <label>Tarifa Água (R$/m³)</label>
+          <input id="m3-price" type="number" step="0.01" />
+          <button id="save-tariffs">Salvar Tarifas</button>
+          <p id="tariff-msg" class="msg"></p>
         </div>
       </section>
     </main>
-  </div>
+  </section>
 
   <script src="renderer.js"></script>
 </body>

@@ -1,40 +1,268 @@
-/* Gestor de Consumo — estilo (versão compacta/didática) */
-:root{
-  --bg:#0f172a;--text:#f1f5f9;--card:#1e293b;--line:#334155;--accent:#3b82f6;--accent2:#22c55e;--alert:#ef4444;--muted:#94a3b8;--shadow:rgba(0,0,0,0.25)
+/* ============================================================
+   GESTOR DE CONSUMO - STYLE 4.1 PRO
+   Layout limpo, responsivo e otimizado
+   ============================================================ */
+
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
-[data-theme='light']{--bg:#f8fafc;--text:#0f172a;--card:#fff;--line:#e2e8f0;--accent:#2563eb;--accent2:#16a34a;--alert:#dc2626;--muted:#475569;--shadow:rgba(0,0,0,0.08)}
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,Arial,sans-serif}
-body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
-button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.95rem;transition:background .15s,transform .08s}
-button:hover{background:var(--accent2)}button:active{transform:scale(.98)}
-.theme-toggle{background:var(--card);color:var(--text);border:1px solid var(--line)}
-input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 10px;font-size:15px;transition:border .12s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-label{font-size:.85rem;color:var(--muted)}
-.auth{flex:1;display:flex;justify-content:center;align-items:center}
-.auth-card{background:var(--card);border-radius:16px;padding:40px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:15px;text-align:center;box-shadow:0 0 20px var(--shadow)}
-.auth-card h1{font-size:1.6rem}
-.auth-card .subtitle{font-size:.9rem;color:var(--muted)}
-.field{display:flex;flex-direction:column;gap:4px;text-align:left}
-.msg{color:var(--alert);font-size:.9rem;min-height:1.2em}
-.app{display:grid;grid-template-columns:220px 1fr;flex:1;height:100%}
-.sidebar{background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:20px}
-.brand .logo{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-.brand-text{display:flex;flex-direction:column;font-size:13px}
-.nav-btn{background:none;border:none;text-align:left;padding:10px 8px;color:var(--text);border-radius:6px;transition:background .12s;cursor:pointer;font-size:15px}
-.nav-btn:hover{background:var(--line)}.nav-btn.active{background:var(--accent);color:#fff}
-.main{background:var(--bg);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px}
-.topbar{display:flex;align-items:center;justify-content:space-between}
-.topbar h2{font-size:1.4rem}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 6px var(--shadow)}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{border-bottom:1px solid var(--line);padding:8px;font-size:.95rem;text-align:left}
-.table th{background:var(--line);color:#fff;font-weight:600}
-.table tr:hover{background:rgba(255,255,255,0.03)}
-.alert-list li{background:var(--alert);color:#fff;padding:8px 10px;border-radius:8px;font-size:.9rem}
-#meter-list{display:grid;gap:8px;list-style:none;padding:0}
-#meter-list li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
-#meter-list small{color:var(--muted);font-size:.85rem}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{flex-direction:row;align-items:center;justify-content:space-around;border-bottom:1px solid var(--line)}.nav-btn{font-size:13px;padding:6px}.main{padding:10px}.card{padding:12px}.cards{grid-template-columns:1fr}}
+
+body {
+  background: #f2f4f7;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ================= LOGIN ================= */
+.auth {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%);
+}
+
+.auth-card {
+  background: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  width: 320px;
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+.auth-card h1 {
+  font-size: 1.8em;
+  color: #0072ff;
+  margin-bottom: 6px;
+}
+
+.auth-card .subtitle {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.field {
+  text-align: left;
+  margin-bottom: 15px;
+}
+
+.field label {
+  font-size: 0.85em;
+  color: #555;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.field input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+}
+
+button {
+  background: #0072ff;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+  background: #0059d1;
+  transform: scale(1.03);
+}
+
+.msg {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #e00;
+}
+
+/* ================= APP ================= */
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.logo {
+  width: 45px;
+  height: 45px;
+  background: #0072ff;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.brand-text {
+  margin-left: 10px;
+}
+
+.brand-text strong {
+  font-size: 1.1em;
+}
+
+.nav-btn {
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 12px 15px;
+  margin: 4px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background 0.2s ease-in-out;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.nav-btn.active {
+  background: #0072ff;
+}
+
+/* ================= MAIN ================= */
+.main {
+  padding: 20px;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.section {
+  display: none;
+  animation: fadeIn 0.4s ease;
+}
+
+.section.active {
+  display: block;
+}
+
+h2 {
+  margin-bottom: 15px;
+  font-size: 1.4em;
+  color: #0072ff;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 15px;
+  text-align: center;
+  transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card h3 {
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: #222;
+  font-size: 1.1em;
+}
+
+/* ================= TABELAS ================= */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.table th, .table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 0.9em;
+}
+
+.table th {
+  background: #0072ff;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ================= FILTROS ================= */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.filters select, .filters input {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* ================= RESPONSIVIDADE ================= */
+@media (max-width: 768px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .main {
+    padding: 10px;
+  }
+  .cards {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* ================= ANIMAÇÕES ================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
