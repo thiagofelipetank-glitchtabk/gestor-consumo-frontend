@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teste de Envio - Medidor Trifásico IE</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+  padding: 20px;
+}
+.container {
+  max-width: 700px;
+  margin: auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+h1 {
+  color: #0072ff;
+  text-align: center;
+}
+button {
+  background: #0072ff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+button:hover {
+  background: #005fd1;
+}
+textarea {
+  width: 100%;
+  height: 160px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: monospace;
+}
+#response {
+  margin-top: 20px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: monospace;
+}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Simulador de Envio - Medidor Trifásico IE</h1>
+    <p>Este painel simula o envio HTTP POST do seu medidor IE trifásico para o backend local (porta 3000).</p>
+    <p><strong>Token configurado:</strong> <code>jt7gdglv</code></p>
+    <p>Você pode ajustar os valores antes de enviar:</p>
+
+    <textarea id="payload">token=jt7gdglv&hora=12&minuto=45&segundo=10&
+pa=230.1&pb=225.9&pc=228.4&pt=684.4&
+epa_c=120.3&epb_c=122.8&epc_c=118.7&ept_c=361.8&
+epa_g=120.6&epb_g=123.0&epc_g=119.2&ept_g=362.8&
+iarms=3.2&ibrms=3.3&icrms=3.1&
+uarms=219&ubrms=220&ucrms=221</textarea>
+
+    <button id="sendBtn">Enviar Simulação do Medidor</button>
+    <div id="response">Resposta aparecerá aqui...</div>
+  </div>
+
+<script>
+document.getElementById('sendBtn').addEventListener('click', async () => {
+  const payload = document.getElementById('payload').value.trim();
+  const responseBox = document.getElementById('response');
+  responseBox.textContent = 'Enviando...';
+
+  try {
+    const res = await fetch('http://localhost:3000/api/insert.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload
+    });
+    const text = await res.text();
+    responseBox.textContent = '✅ Resposta do servidor:\n' + text;
+  } catch (err) {
+    responseBox.textContent = '❌ Erro ao enviar: ' + err.message;
+  }
+});
+</script>
+</body>
+</html>
