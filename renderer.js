@@ -1,13 +1,13 @@
 // ============================================================
-// Frontend 4.8 PRO (consolidado)
+// Frontend 4.9 MASTER (web/Vercel)
 // - Login limpo (sem e-mail/senha preenchidos)
-// - Dashboard com filtros + trifásico A/B/C
-// - Usuários: filtro e exibição de permissões
+// - Dashboard com filtros + trifásico A/B/C (consumo do mês)
+// - Usuários: filtro e exibição de permissões (chips)
 // - Medidores: listagem + criação + copiar token
-// - Backend: Render Cloud
+// - Backend: Render Cloud (URL fixa abaixo)
 // ============================================================
 
-// 🔗 Endereço do backend
+// 🔗 Endereço do backend (Render)
 const API = "https://gestor-consumo-backend.onrender.com";
 
 let token = null;
@@ -94,11 +94,9 @@ function prepareDashboardFilters() {
   const selType = document.getElementById("filter-type");
   const selMeter = document.getElementById("filter-meter");
 
-  // Preenche lista de medidores
   selMeter.innerHTML = `<option value="">Todos os medidores</option>` +
     metersCache.map(m => `<option value="${m.id}" data-type="${m.type}">${m.name} (${m.type})</option>`).join("");
 
-  // evento
   document.getElementById("refresh-dashboard").onclick = renderDashboard;
   selType.onchange = renderDashboard;
   selMeter.onchange = renderDashboard;
@@ -116,7 +114,6 @@ async function renderDashboard() {
     await preloadMeters();
     const summary = await http("/api/summary/month");
 
-    // Agrupar por medidor
     const byMeter = new Map();
     summary.forEach(row => {
       if (filterType && row.type !== filterType) return;
@@ -136,7 +133,6 @@ async function renderDashboard() {
       const rows = byMeter.get(m.id) || [];
 
       if (m.type === "energia-3f") {
-        // Fases derivadas do nome salvo
         const faseA = rows.find(r => (r.meter_name || "").includes("Fase A"));
         const faseB = rows.find(r => (r.meter_name || "").includes("Fase B"));
         const faseC = rows.find(r => (r.meter_name || "").includes("Fase C"));
@@ -181,7 +177,7 @@ async function renderUsers() {
   tbody.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
 
   try {
-    // Por enquanto mostramos apenas o usuário logado (backend ainda não lista todos)
+    // Backend atual não lista todos; mostramos o logado (com chips de permissões).
     const list = [currentUser];
     const filtered = list.filter(u =>
       (u.name || "").toLowerCase().includes(filter) ||
@@ -200,7 +196,7 @@ async function renderUsers() {
           <td>${u.email}</td>
           <td><span class="tag">${u.role}</span></td>
           <td>${renderMeterChips(allowed)}</td>
-          <td><button class="mini-btn" data-act="edit" data-id="${u.id}">Editar</button></td>
+          <td><button class="mini-btn" data-act="edit" data-id="${u.id}" disabled style="opacity:.6;cursor:not-allowed;">Editar</button></td>
         `;
         tbody.appendChild(tr);
       });

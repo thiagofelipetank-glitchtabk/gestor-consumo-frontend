@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestor de Consumo 4.8 PRO</title>
+  <title>Gestor de Consumo 4.9 MASTER</title>
   <link rel="stylesheet" href="style.css"/>
   <link rel="icon" href="assets/favicon.ico"/>
 </head>
@@ -75,7 +75,7 @@
         <h2>Usuários & Permissões</h2>
         <div class="filters">
           <input id="filter-user" type="text" placeholder="Filtrar usuários"/>
-          <button id="add-user-btn">+ Adicionar Usuário</button>
+          <button id="add-user-btn" disabled style="opacity:.6;cursor:not-allowed;">+ Adicionar Usuário</button>
         </div>
 
         <table class="table" id="users-table">
@@ -91,7 +91,8 @@
           <tbody></tbody>
         </table>
         <p class="hint">
-          Para reduzir poluição visual, use o filtro acima para localizar usuários e revisar permissões. (Listagem completa de usuários pode ser adicionada depois.)
+          Para reduzir poluição visual, use o filtro acima para localizar usuários e revisar permissões.
+          (Listagem completa e edição avançada podem ser adicionadas depois.)
         </p>
       </section>
 
@@ -116,9 +117,9 @@
         </table>
 
         <div class="hint">
-          <b>Integração IE (trifásico):</b> configure no equipamento:<br>
+          <b>Integração IE (trifásico):</b> no equipamento, configure:<br>
           <code>Host</code>: seu domínio do backend (Render) • <code>Caminho</code>: <b>/api/insert.php</b> • <code>Método</code>: POST • <code>Token</code>: o token do medidor.<br>
-          O app gravará automaticamente <b>Fase A/B/C</b> a partir de <code>epa_g</code>, <code>epb_g</code>, <code>epc_g</code>.
+          O app grava automaticamente <b>Fase A/B/C</b> a partir de <code>epa_g</code>, <code>epb_g</code>, <code>epc_g</code>.
         </div>
       </section>
     </main>
