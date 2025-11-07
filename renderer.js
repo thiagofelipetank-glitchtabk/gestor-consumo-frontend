@@ -1,17 +1,20 @@
 // ============================================================
-// Frontend 4.7 PRO - Conecta ao backend Render
-// - Login limpo (sem preencher email/senha)
-// - Dashboard: resume mês por medidor/fase (energia-3f fatiado)
-// - Usuários: lista + filtro + binding de permissões
-// - Medidores: CRUD básico + exibição de token
+// Frontend 4.8 PRO (consolidado)
+// - Login limpo (sem e-mail/senha preenchidos)
+// - Dashboard com filtros + trifásico A/B/C
+// - Usuários: filtro e exibição de permissões
+// - Medidores: listagem + criação + copiar token
+// - Backend: Render Cloud
 // ============================================================
 
-const API = window.APP_CONFIG.API_URL;
+// 🔗 Endereço do backend
+const API = "https://gestor-consumo-backend.onrender.com";
+
 let token = null;
 let currentUser = null;
 let metersCache = [];
 
-// --------------- Helpers HTTP ---------------
+// -------------------------- HTTP Helper --------------------------
 async function http(path, opts = {}) {
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -21,7 +24,7 @@ async function http(path, opts = {}) {
   return data;
 }
 
-// --------------- Sessão ---------------
+// -------------------------- Sessão --------------------------
 document.getElementById("login-btn").onclick = async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
@@ -39,7 +42,7 @@ document.getElementById("login-btn").onclick = async () => {
     document.getElementById("app").style.display = "grid";
     initApp();
   } catch (e) {
-    msg.textContent = e.message;
+    msg.textContent = "Falha no login: " + e.message;
   }
 };
 
@@ -60,13 +63,13 @@ document.getElementById("logout-btn").onclick = () => {
   location.reload();
 };
 
-// --------------- Navegação ---------------
+// -------------------------- Navegação --------------------------
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     const target = btn.getAttribute("data-target");
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
     document.getElementById(target).classList.add("active");
     if (target === "dashboard") renderDashboard();
     if (target === "usuarios") renderUsers();
@@ -74,45 +77,69 @@ document.querySelectorAll(".nav-btn").forEach((btn) => {
   });
 });
 
-// --------------- Inicialização ---------------
+// -------------------------- Init App --------------------------
 async function initApp() {
   await preloadMeters();
+  prepareDashboardFilters();
   renderDashboard();
 }
 
-// --------------- Medidores (cache) ---------------
+// -------------------------- Cache de Medidores --------------------------
 async function preloadMeters() {
   metersCache = await http("/api/meters");
 }
 
-// --------------- Dashboard (Resumo do mês) ---------------
+// -------------------------- Filtros do Dashboard --------------------------
+function prepareDashboardFilters() {
+  const selType = document.getElementById("filter-type");
+  const selMeter = document.getElementById("filter-meter");
+
+  // Preenche lista de medidores
+  selMeter.innerHTML = `<option value="">Todos os medidores</option>` +
+    metersCache.map(m => `<option value="${m.id}" data-type="${m.type}">${m.name} (${m.type})</option>`).join("");
+
+  // evento
+  document.getElementById("refresh-dashboard").onclick = renderDashboard;
+  selType.onchange = renderDashboard;
+  selMeter.onchange = renderDashboard;
+}
+
+// -------------------------- Dashboard (Resumo do mês) --------------------------
 async function renderDashboard() {
   const cont = document.getElementById("cards");
   cont.innerHTML = "<div class='card'><p>Carregando...</p></div>";
 
+  const filterType = document.getElementById("filter-type").value;
+  const filterMeterId = document.getElementById("filter-meter").value;
+
   try {
     await preloadMeters();
-    // Pega sumário mensal (soma por meter_id/meter_name/type)
     const summary = await http("/api/summary/month");
 
-    // Para medidores energia-3f, vamos derivar as 3 fases a partir do nome salvo:
-    // O backend grava como "Nome do Medidor - Fase A/B/C".
-    // Agrupamos por medidor e mostramos 3 cards (A/B/C).
-    const byMeter = new Map(); // meter_id -> array
+    // Agrupar por medidor
+    const byMeter = new Map();
     summary.forEach(row => {
+      if (filterType && row.type !== filterType) return;
       if (!byMeter.has(row.meter_id)) byMeter.set(row.meter_id, []);
       byMeter.get(row.meter_id).push(row);
     });
 
     cont.innerHTML = "";
-    metersCache.forEach(m => {
+
+    const listToShow = metersCache.filter(m => {
+      if (filterType && m.type !== filterType) return false;
+      if (filterMeterId && String(m.id) !== String(filterMeterId)) return false;
+      return true;
+    });
+
+    listToShow.forEach(m => {
       const rows = byMeter.get(m.id) || [];
+
       if (m.type === "energia-3f") {
-        // filtra fases
+        // Fases derivadas do nome salvo
         const faseA = rows.find(r => (r.meter_name || "").includes("Fase A"));
         const faseB = rows.find(r => (r.meter_name || "").includes("Fase B"));
         const faseC = rows.find(r => (r.meter_name || "").includes("Fase C"));
-
         const a = faseA ? faseA.total : 0;
         const b = faseB ? faseB.total : 0;
         const c = faseC ? faseC.total : 0;
@@ -133,7 +160,7 @@ async function renderDashboard() {
     });
 
     if (!cont.children.length) {
-      cont.innerHTML = "<div class='card'><p>Nenhum dado para este mês ainda.</p></div>";
+      cont.innerHTML = "<div class='card'><p>Nenhum dado para este mês com os filtros atuais.</p></div>";
     }
   } catch (e) {
     cont.innerHTML = `<div class='card'><p>Erro: ${e.message}</p></div>`;
@@ -147,25 +174,20 @@ function card(title, value) {
   return div;
 }
 
-// --------------- Usuários (lista + filtro + permissões) ---------------
+// -------------------------- Usuários --------------------------
 async function renderUsers() {
   const tbody = document.querySelector("#users-table tbody");
   const filter = document.getElementById("filter-user").value.trim().toLowerCase();
   tbody.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
 
   try {
-    // Não temos rota GET /auth/users no backend atual,
-    // então listaremos apenas o usuário logado como demonstração.
-    // (Se quiser, eu te mando as rotas /auth/users, /auth/users/:id, etc.)
-    const list = [currentUser]; // placeholder
-
-    // filtra
+    // Por enquanto mostramos apenas o usuário logado (backend ainda não lista todos)
+    const list = [currentUser];
     const filtered = list.filter(u =>
       (u.name || "").toLowerCase().includes(filter) ||
       (u.email || "").toLowerCase().includes(filter)
     );
 
-    // monta
     tbody.innerHTML = "";
     if (!filtered.length) {
       tbody.innerHTML = "<tr><td colspan='5'>Nenhum usuário encontrado.</td></tr>";
@@ -187,7 +209,6 @@ async function renderUsers() {
     tbody.innerHTML = `<tr><td colspan="5">Erro: ${e.message}</td></tr>`;
   }
 
-  // filtro live
   document.getElementById("filter-user").oninput = renderUsers;
 }
 
@@ -199,7 +220,7 @@ function renderMeterChips(allowedIds) {
     .join(" ") || "<i>Sem permissões</i>";
 }
 
-// --------------- Medidores (lista + add) ---------------
+// -------------------------- Medidores --------------------------
 async function renderMeters() {
   const tbody = document.querySelector("#meters-table tbody");
   tbody.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
@@ -250,7 +271,6 @@ async function renderMeters() {
     }
   };
 
-  // ações da tabela (copiar token)
   tbody.querySelectorAll("button[data-act='copy-token']").forEach(btn => {
     btn.onclick = async () => {
       const t = btn.getAttribute("data-token");

@@ -1,195 +1,129 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gestor de Consumo</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="./style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestor de Consumo 4.8 PRO</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="icon" href="assets/favicon.ico"/>
 </head>
 <body>
-  <header>
-    <h1>Gestor de Consumo</h1>
-    <div class="actions"><button id="logout-btn">Sair</button></div>
-  </header>
-
   <!-- LOGIN -->
-  <section id="login-section">
-    <h2>Acesse sua conta</h2>
-    <div class="field">
-      <label for="email">E-mail</label>
-      <input id="email" type="email" placeholder="Digite seu e-mail" autocomplete="username" />
+  <div id="login-section" class="auth">
+    <div class="auth-card">
+      <h1>Gestor de Consumo</h1>
+      <p class="subtitle">Acesse sua conta</p>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" placeholder="Digite seu e-mail" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <input id="password" type="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+      </div>
+
+      <button id="login-btn">Entrar</button>
+      <p class="msg" id="login-msg"></p>
     </div>
-    <div class="field">
-      <label for="password">Senha</label>
-      <input id="password" type="password" placeholder="Digite sua senha" autocomplete="current-password" />
-    </div>
-    <button id="login-btn" class="btn">Entrar</button>
-    <div id="login-msg" class="msg"></div>
-  </section>
+  </div>
 
   <!-- APP -->
-  <div id="app" class="container">
-    <nav>
-      <button class="nav-btn active" data-target="dashboard">Dashboard</button>
-      <button class="nav-btn" data-target="agua">Água</button>
-      <button class="nav-btn" data-target="energia">Energia</button>
-      <button class="nav-btn" data-target="config">Configurações</button>
-      <button id="nav-users" class="nav-btn" data-target="usuarios" style="display:none">Usuários</button>
-      <button id="nav-meters" class="nav-btn" data-target="medidores" style="display:none">Medidores</button>
-      <button id="nav-3f" class="nav-btn" data-target="trifasico" style="display:none">Trifásico</button>
-    </nav>
+  <div id="app" class="app" style="display:none;">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">GC</div>
+        <div class="brand-text"><strong>Gestor</strong><br/>de Consumo</div>
+      </div>
 
-    <main>
-      <!-- Dashboard -->
+      <button class="nav-btn active" data-target="dashboard">📊 Dashboard</button>
+      <button class="nav-btn" data-target="usuarios">👥 Usuários</button>
+      <button class="nav-btn" data-target="medidores">⚙️ Medidores</button>
+      <button id="logout-btn" class="nav-btn">🚪 Sair</button>
+    </aside>
+
+    <main class="main">
+      <!-- DASHBOARD -->
       <section id="dashboard" class="section active">
-        <h2>Resumo do mês (por medidor)</h2>
-        <div class="row">
-          <label>Mês:</label>
-          <input id="month-input" type="month" />
-          <button id="refresh-month">Atualizar</button>
-        </div>
-        <div id="dashboard-cards" class="cards mt"></div>
-      </section>
+        <h2>Resumo do mês</h2>
 
-      <!-- Água -->
-      <section id="agua" class="section">
-        <h2>Água</h2>
-        <div class="row">
-          <label>Medidor:</label>
-          <select id="agua-meter"></select>
-          <label>Dias:</label>
-          <input id="agua-range" type="number" min="1" max="60" value="7" />
-          <button id="agua-apply">Aplicar</button>
-        </div>
-        <div class="cards mt">
-          <div class="card"><h3>Total</h3><p id="agua-total">0 m³</p></div>
-          <div class="card"><h3>Custo</h3><p id="agua-cost">R$ 0,00</p></div>
-        </div>
-        <canvas id="agua-chart" class="mt"></canvas>
-      </section>
+        <div class="filters">
+          <select id="filter-type" title="Tipo">
+            <option value="">Todos os tipos</option>
+            <option value="agua">Água</option>
+            <option value="energia">Energia (monofásico)</option>
+            <option value="energia-3f">Energia (trifásico)</option>
+          </select>
 
-      <!-- Energia -->
-      <section id="energia" class="section">
-        <h2>Energia</h2>
-        <div class="row">
-          <label>Medidor:</label>
-          <select id="energia-meter"></select>
-          <label>Dias:</label>
-          <input id="energia-range" type="number" min="1" max="60" value="7" />
-          <button id="energia-apply">Aplicar</button>
-        </div>
-        <div class="cards mt">
-          <div class="card"><h3>Total</h3><p id="energia-total">0 kWh</p></div>
-          <div class="card"><h3>Custo</h3><p id="energia-cost">R$ 0,00</p></div>
-        </div>
-        <canvas id="energia-chart" class="mt"></canvas>
-      </section>
+          <select id="filter-meter" title="Medidor">
+            <option value="">Todos os medidores</option>
+          </select>
 
-      <!-- Config -->
-      <section id="config" class="section">
-        <h2>Configurações</h2>
-        <div class="row">
-          <div class="card">
-            <h3>Tarifas</h3>
-            <div class="row">
-              <label>kWh (R$)</label>
-              <input id="kwh-price" type="number" step="0.01" min="0" />
-              <label>m³ (R$)</label>
-              <input id="m3-price" type="number" step="0.01" min="0" />
-              <button id="save-tariffs">Salvar</button>
-            </div>
-            <p id="tariff-msg" class="mt"></p>
-          </div>
+          <button id="refresh-dashboard" class="mini-btn">Atualizar</button>
+        </div>
+
+        <div id="cards" class="cards"></div>
+
+        <div class="hint">
+          <b>Dica:</b> medidores <b>trifásicos</b> aparecem fatiados como <b>Fase A</b>, <b>Fase B</b>, <b>Fase C</b>.
         </div>
       </section>
 
-      <!-- Usuários -->
+      <!-- USUÁRIOS -->
       <section id="usuarios" class="section">
-        <h2>Usuários</h2>
-        <div class="card">
-          <h3>Novo usuário</h3>
-          <div class="row">
-            <input id="u-name" type="text" placeholder="Nome" />
-            <input id="u-email" type="email" placeholder="E-mail" />
-            <input id="u-pass" type="password" placeholder="Senha" />
-            <select id="u-role">
-              <option value="user">user</option>
-              <option value="admin">admin</option>
-            </select>
-            <button id="u-create">Criar</button>
-          </div>
-          <p id="u-msg" class="mt"></p>
+        <h2>Usuários & Permissões</h2>
+        <div class="filters">
+          <input id="filter-user" type="text" placeholder="Filtrar usuários"/>
+          <button id="add-user-btn">+ Adicionar Usuário</button>
         </div>
 
-        <div class="card mt">
-          <div class="row">
-            <input id="perm-filter" type="text" placeholder="Filtrar medidores por nome..." />
-          </div>
-          <h3>Lista</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Nome</th><th>Email</th><th>Perfil</th><th>Permissões</th><th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="u-tbody"></tbody>
-          </table>
-        </div>
+        <table class="table" id="users-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Perfil</th>
+              <th>Permissões (medidores)</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="hint">
+          Para reduzir poluição visual, use o filtro acima para localizar usuários e revisar permissões. (Listagem completa de usuários pode ser adicionada depois.)
+        </p>
       </section>
 
-      <!-- Medidores -->
+      <!-- MEDIDORES -->
       <section id="medidores" class="section">
         <h2>Medidores</h2>
-        <div class="card">
-          <h3>Novo medidor</h3>
-          <div class="row">
-            <input id="m-name" type="text" placeholder="Nome do medidor" />
-            <select id="m-type">
-              <option value="agua">água</option>
-              <option value="energia">energia</option>
-              <option value="energia-3f">energia-3f (trifásico)</option>
-            </select>
-            <button id="m-create">Criar</button>
-          </div>
-          <p class="small">Para trifásico, o token é único do equipamento IE e o app divide por fase.</p>
-          <p id="m-msg" class="mt"></p>
+        <div class="filters">
+          <button id="add-meter-btn">+ Adicionar Medidor</button>
         </div>
 
-        <div class="card mt">
-          <h3>Lista</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Nome</th><th>Tipo</th><th>Token</th><th>Criado</th><th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="m-tbody"></tbody>
-          </table>
-        </div>
-      </section>
+        <table class="table" id="meters-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Token</th>
+              <th>Criado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
 
-      <!-- Trifásico -->
-      <section id="trifasico" class="section">
-        <h2>Mapeamento Trifásico (A/B/C → Apartamentos)</h2>
-        <div class="card">
-          <div class="row">
-            <label>Medidor 3F:</label>
-            <select id="map-parent"></select>
-            <button id="map-autocreate">Autocriar Fases A/B/C</button>
-          </div>
-          <div id="map-editor" class="mt"></div>
+        <div class="hint">
+          <b>Integração IE (trifásico):</b> configure no equipamento:<br>
+          <code>Host</code>: seu domínio do backend (Render) • <code>Caminho</code>: <b>/api/insert.php</b> • <code>Método</code>: POST • <code>Token</code>: o token do medidor.<br>
+          O app gravará automaticamente <b>Fase A/B/C</b> a partir de <code>epa_g</code>, <code>epb_g</code>, <code>epc_g</code>.
         </div>
       </section>
     </main>
   </div>
 
-  <script>
-    // Altere aqui para sua URL do backend na Render
-    window.APP_CONFIG = {
-      API_URL: "https://gestor-consumo-backend.onrender.com"
-    };
-  </script>
-  <script src="./renderer.js"></script>
+  <script src="renderer.js"></script>
 </body>
 </html>
