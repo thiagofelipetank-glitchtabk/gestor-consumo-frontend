@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestor de Consumo 4.9 MASTER</title>
+  <title>Gestor de Consumo 5.0 ULTIMATE</title>
   <link rel="stylesheet" href="style.css"/>
   <link rel="icon" href="assets/favicon.ico"/>
 </head>
@@ -63,10 +63,11 @@
           <button id="refresh-dashboard" class="mini-btn">Atualizar</button>
         </div>
 
+        <div id="tariff-banner" class="banner"></div>
         <div id="cards" class="cards"></div>
 
         <div class="hint">
-          <b>Dica:</b> medidores <b>trifásicos</b> aparecem fatiados como <b>Fase A</b>, <b>Fase B</b>, <b>Fase C</b>.
+          <b>Integração IE trifásico:</b> as fases são separadas automaticamente (A/B/C) e você pode <b>renomear</b> na aba Medidores (ex.: Apto 01/02/03).
         </div>
       </section>
 
@@ -91,8 +92,7 @@
           <tbody></tbody>
         </table>
         <p class="hint">
-          Para reduzir poluição visual, use o filtro acima para localizar usuários e revisar permissões.
-          (Listagem completa e edição avançada podem ser adicionadas depois.)
+          Use o filtro para localizar usuários. Em breve liberamos edição completa e vinculação/desvinculação diretamente por aqui.
         </p>
       </section>
 
@@ -117,9 +117,7 @@
         </table>
 
         <div class="hint">
-          <b>Integração IE (trifásico):</b> no equipamento, configure:<br>
-          <code>Host</code>: seu domínio do backend (Render) • <code>Caminho</code>: <b>/api/insert.php</b> • <code>Método</code>: POST • <code>Token</code>: o token do medidor.<br>
-          O app grava automaticamente <b>Fase A/B/C</b> a partir de <code>epa_g</code>, <code>epb_g</code>, <code>epc_g</code>.
+          <b>IE Trifásico:</b> Host: seu domínio do backend (Render) • Porta: 443 • Caminho: <b>/api/insert.php</b> • Método: POST • Envie <code>token</code> + (<code>epa_g</code>, <code>epb_g</code>, <code>epc_g</code>).
         </div>
       </section>
     </main>

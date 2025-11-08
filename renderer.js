@@ -1,20 +1,21 @@
 // ============================================================
-// Frontend 4.9 MASTER (web/Vercel)
-// - Login limpo (sem e-mail/senha preenchidos)
-// - Dashboard com filtros + trifásico A/B/C (consumo do mês)
-// - Usuários: filtro e exibição de permissões (chips)
-// - Medidores: listagem + criação + copiar token
-// - Backend: Render Cloud (URL fixa abaixo)
+// Frontend 5.0 ULTIMATE (web/Vercel)
+// - Login limpo
+// - Dashboard mês: trifásico (A/B/C), custo por tarifa, última leitura
+// - Filtros por tipo/medidor
+// - Usuários: filtro + chips de permissões
+// - Medidores: criar, copiar token, renomear fases A/B/C (local)
+// - Backend: Render Cloud (URL fixa)
 // ============================================================
 
-// 🔗 Endereço do backend (Render)
 const API = "https://gestor-consumo-backend.onrender.com";
 
 let token = null;
 let currentUser = null;
 let metersCache = [];
+let tariffs = { kwh_price: 0, m3_price: 0 };
 
-// -------------------------- HTTP Helper --------------------------
+// --------------- Helpers ---------------
 async function http(path, opts = {}) {
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -24,7 +25,16 @@ async function http(path, opts = {}) {
   return data;
 }
 
-// -------------------------- Sessão --------------------------
+// Phase labels (local) — { [meterId]: { A: "Apto 01", B: "Apto 02", C: "Apto 03" } }
+function loadPhaseLabels() {
+  try { return JSON.parse(localStorage.getItem("phase_labels") || "{}"); }
+  catch { return {}; }
+}
+function savePhaseLabels(map) {
+  localStorage.setItem("phase_labels", JSON.stringify(map));
+}
+
+// --------------- Sessão ---------------
 document.getElementById("login-btn").onclick = async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
@@ -63,7 +73,7 @@ document.getElementById("logout-btn").onclick = () => {
   location.reload();
 };
 
-// -------------------------- Navegação --------------------------
+// --------------- Navegação ---------------
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
@@ -77,19 +87,29 @@ document.querySelectorAll(".nav-btn").forEach((btn) => {
   });
 });
 
-// -------------------------- Init App --------------------------
+// --------------- Init ---------------
 async function initApp() {
-  await preloadMeters();
+  await Promise.all([preloadMeters(), preloadTariffs()]);
   prepareDashboardFilters();
+  renderTariffBanner();
   renderDashboard();
 }
 
-// -------------------------- Cache de Medidores --------------------------
+// --------------- Dados básicos ---------------
 async function preloadMeters() {
   metersCache = await http("/api/meters");
 }
+async function preloadTariffs() {
+  try { tariffs = await http("/api/tariffs"); }
+  catch { tariffs = { kwh_price: 0, m3_price: 0 }; }
+}
 
-// -------------------------- Filtros do Dashboard --------------------------
+function renderTariffBanner() {
+  const el = document.getElementById("tariff-banner");
+  el.innerHTML = `Tarifas vigentes: <b>Energia</b> R$ ${Number(tariffs.kwh_price||0).toFixed(2)}/kWh • <b>Água</b> R$ ${Number(tariffs.m3_price||0).toFixed(2)}/m³`;
+}
+
+// --------------- Filtros Dashboard ---------------
 function prepareDashboardFilters() {
   const selType = document.getElementById("filter-type");
   const selMeter = document.getElementById("filter-meter");
@@ -102,18 +122,22 @@ function prepareDashboardFilters() {
   selMeter.onchange = renderDashboard;
 }
 
-// -------------------------- Dashboard (Resumo do mês) --------------------------
+// --------------- Dashboard (resumo do mês) ---------------
 async function renderDashboard() {
   const cont = document.getElementById("cards");
   cont.innerHTML = "<div class='card'><p>Carregando...</p></div>";
 
   const filterType = document.getElementById("filter-type").value;
   const filterMeterId = document.getElementById("filter-meter").value;
+  const labels = loadPhaseLabels();
 
   try {
     await preloadMeters();
-    const summary = await http("/api/summary/month");
+    const [summary] = await Promise.all([
+      http("/api/summary/month")
+    ]);
 
+    // Agrupa por medidor
     const byMeter = new Map();
     summary.forEach(row => {
       if (filterType && row.type !== filterType) return;
@@ -129,55 +153,91 @@ async function renderDashboard() {
       return true;
     });
 
-    listToShow.forEach(m => {
+    // Render cards
+    for (const m of listToShow) {
       const rows = byMeter.get(m.id) || [];
+      let last = null;
+      try { last = await http(`/api/readings/last/${m.id}`); } catch {}
 
       if (m.type === "energia-3f") {
         const faseA = rows.find(r => (r.meter_name || "").includes("Fase A"));
         const faseB = rows.find(r => (r.meter_name || "").includes("Fase B"));
         const faseC = rows.find(r => (r.meter_name || "").includes("Fase C"));
-        const a = faseA ? faseA.total : 0;
-        const b = faseB ? faseB.total : 0;
-        const c = faseC ? faseC.total : 0;
+        const a = Number(faseA ? faseA.total : 0);
+        const b = Number(faseB ? faseB.total : 0);
+        const c = Number(faseC ? faseC.total : 0);
 
-        cont.appendChild(card(`${m.name} — Fase A`, `${a.toFixed(2)} kWh`));
-        cont.appendChild(card(`${m.name} — Fase B`, `${b.toFixed(2)} kWh`));
-        cont.appendChild(card(`${m.name} — Fase C`, `${c.toFixed(2)} kWh`));
+        const map = labels[m.id] || { A: "Fase A", B: "Fase B", C: "Fase C" };
+        cont.appendChild(card(
+          `${m.name} — ${map.A}`,
+          `${a.toFixed(2)} kWh`,
+          `≈ R$ ${(a * (tariffs.kwh_price || 0)).toFixed(2)}`,
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
+        cont.appendChild(card(
+          `${m.name} — ${map.B}`,
+          `${b.toFixed(2)} kWh`,
+          `≈ R$ ${(b * (tariffs.kwh_price || 0)).toFixed(2)}`,
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
+        cont.appendChild(card(
+          `${m.name} — ${map.C}`,
+          `${c.toFixed(2)} kWh`,
+          `≈ R$ ${(c * (tariffs.kwh_price || 0)).toFixed(2)}`,
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
       } else if (m.type === "energia") {
-        const total = rows.reduce((acc, r) => acc + (r.total || 0), 0);
-        cont.appendChild(card(`${m.name} (Energia)`, `${total.toFixed(2)} kWh`));
+        const total = rows.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+        cont.appendChild(card(
+          `${m.name} (Energia)`,
+          `${total.toFixed(2)} kWh`,
+          `≈ R$ ${(total * (tariffs.kwh_price || 0)).toFixed(2)}`,
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
       } else if (m.type === "agua") {
-        const total = rows.reduce((acc, r) => acc + (r.total || 0), 0);
-        cont.appendChild(card(`${m.name} (Água)`, `${total.toFixed(2)} m³`));
+        const total = rows.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+        cont.appendChild(card(
+          `${m.name} (Água)`,
+          `${total.toFixed(2)} m³`,
+          `≈ R$ ${(total * (tariffs.m3_price || 0)).toFixed(2)}`,
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
       } else {
-        const total = rows.reduce((acc, r) => acc + (r.total || 0), 0);
-        cont.appendChild(card(`${m.name}`, `${total.toFixed(2)} unidades`));
+        const total = rows.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+        cont.appendChild(card(
+          `${m.name}`,
+          `${total.toFixed(2)} unidades`,
+          "",
+          last ? `Última: ${last.value?.toFixed?.(2) ?? last.value} (${(last.created_at||"").replace("T"," ").slice(0,19)})` : "Sem última leitura"
+        ));
       }
-    });
+    }
 
     if (!cont.children.length) {
       cont.innerHTML = "<div class='card'><p>Nenhum dado para este mês com os filtros atuais.</p></div>";
     }
   } catch (e) {
-    cont.innerHTML = `<div class='card'><p>Erro: ${e.message}</p></div>`;
+    document.getElementById("cards").innerHTML = `<div class='card'><p>Erro: ${e.message}</p></div>`;
   }
 }
 
-function card(title, value) {
+function card(title, big, small = "", foot = "") {
   const div = document.createElement("div");
   div.className = "card";
-  div.innerHTML = `<h3>${title}</h3><p>${value}</p>`;
+  div.innerHTML = `<h3>${title}</h3><p style="font-size:1.25em;font-weight:600;">${big}</p>` +
+                  (small ? `<p class="muted">${small}</p>` : "") +
+                  (foot ? `<p class="muted">${foot}</p>` : "");
   return div;
 }
 
-// -------------------------- Usuários --------------------------
+// --------------- Usuários ---------------
 async function renderUsers() {
   const tbody = document.querySelector("#users-table tbody");
   const filter = document.getElementById("filter-user").value.trim().toLowerCase();
   tbody.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
 
   try {
-    // Backend atual não lista todos; mostramos o logado (com chips de permissões).
+    // Backend ainda não lista todos; mostramos o logado com as permissões obtidas no login.
     const list = [currentUser];
     const filtered = list.filter(u =>
       (u.name || "").toLowerCase().includes(filter) ||
@@ -216,7 +276,7 @@ function renderMeterChips(allowedIds) {
     .join(" ") || "<i>Sem permissões</i>";
 }
 
-// -------------------------- Medidores --------------------------
+// --------------- Medidores ---------------
 async function renderMeters() {
   const tbody = document.querySelector("#meters-table tbody");
   tbody.innerHTML = "<tr><td colspan='5'>Carregando...</td></tr>";
@@ -226,16 +286,23 @@ async function renderMeters() {
     if (!metersCache.length) {
       tbody.innerHTML = "<tr><td colspan='5'>Nenhum medidor cadastrado.</td></tr>";
     } else {
+      const labels = loadPhaseLabels();
       tbody.innerHTML = "";
       metersCache.forEach(m => {
         const tr = document.createElement("tr");
+        const created = (m.created_at || "").replace("T"," ").slice(0,19);
+        const has3f = m.type === "energia-3f";
+        const map = labels[m.id] || { A: "Fase A", B: "Fase B", C: "Fase C" };
+
         tr.innerHTML = `
           <td>${m.name}</td>
-          <td>${m.type}</td>
+          <td>${m.type}${has3f ? ` <span class="tag">A/B/C</span>` : ""}</td>
           <td><code>${m.token || "-"}</code></td>
-          <td>${(m.created_at || "").replace("T"," ").slice(0,19)}</td>
+          <td>${created}</td>
           <td>
             <button class="mini-btn" data-act="copy-token" data-token="${m.token || ""}">Copiar Token</button>
+            ${has3f ? `<button class="mini-btn" data-act="rename-phases" data-id="${m.id}">Renomear Fases</button>
+            <div style="margin-top:6px;font-size:.85em;color:#475569;">${map.A} • ${map.B} • ${map.C}</div>` : ""}
           </td>
         `;
         tbody.appendChild(tr);
@@ -245,6 +312,7 @@ async function renderMeters() {
     tbody.innerHTML = `<tr><td colspan="5">Erro: ${e.message}</td></tr>`;
   }
 
+  // criar
   document.getElementById("add-meter-btn").onclick = async () => {
     if (!currentUser || currentUser.role !== "admin") {
       return alert("Apenas administradores podem adicionar medidores.");
@@ -261,12 +329,13 @@ async function renderMeters() {
       });
       await preloadMeters();
       renderMeters();
-      alert("Medidor criado com sucesso!");
+      alert("Medidor criado com sucesso! Copie o token para configurar no equipamento.");
     } catch (e) {
       alert("Erro: " + e.message);
     }
   };
 
+  // ações
   tbody.querySelectorAll("button[data-act='copy-token']").forEach(btn => {
     btn.onclick = async () => {
       const t = btn.getAttribute("data-token");
@@ -274,6 +343,21 @@ async function renderMeters() {
       await navigator.clipboard.writeText(t);
       btn.textContent = "Copiado!";
       setTimeout(() => (btn.textContent = "Copiar Token"), 1200);
+    };
+  });
+
+  tbody.querySelectorAll("button[data-act='rename-phases']").forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute("data-id");
+      const labels = loadPhaseLabels();
+      const current = labels[id] || { A: "Fase A", B: "Fase B", C: "Fase C" };
+      const A = prompt("Nome da Fase A:", current.A) ?? current.A;
+      const B = prompt("Nome da Fase B:", current.B) ?? current.B;
+      const C = prompt("Nome da Fase C:", current.C) ?? current.C;
+      labels[id] = { A: A.trim() || "Fase A", B: B.trim() || "Fase B", C: C.trim() || "Fase C" };
+      savePhaseLabels(labels);
+      renderMeters();
+      alert("Fases atualizadas para este medidor.");
     };
   });
 }

@@ -1,5 +1,5 @@
 /* ============================================================
-   GESTOR DE CONSUMO - STYLE 4.8 PRO
+   GESTOR DE CONSUMO - STYLE 5.0 ULTIMATE (web/Vercel)
    ============================================================ */
 
 * { margin:0; padding:0; box-sizing:border-box; font-family:"Segoe UI", Roboto, Arial, sans-serif; }
@@ -35,11 +35,15 @@ button:hover { background:#0059d1; transform:scale(1.03); }
 h2 { margin-bottom:15px; font-size:1.4em; color:#0072ff; }
 
 /* CARDS */
-.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px; margin-bottom:20px; }
-.card { background:#fff; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,.1); padding:15px; text-align:center; transition:transform .2s; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:15px; margin-bottom:20px; }
+.card { background:#fff; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,.1); padding:15px; transition:transform .2s; display:flex; flex-direction:column; gap:8px; }
 .card:hover { transform:translateY(-2px); }
-.card h3 { color:#555; margin-bottom:8px; }
-.card p { color:#222; font-size:1.1em; }
+.card h3 { color:#111827; font-size:1.05em; }
+.card p { color:#1f2937; font-size:1em; }
+.card .muted { color:#6b7280; font-size:.9em; }
+
+/* BANNER TARIFAS */
+.banner { background:#ecfeff; color:#164e63; border:1px solid #22d3ee; padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:.95em; }
 
 /* TABELA */
 .table { width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; margin-top:10px; }
@@ -48,8 +52,9 @@ h2 { margin-bottom:15px; font-size:1.4em; color:#0072ff; }
 
 /* FILTROS */
 .filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; }
-.filters input, .filters select { padding:8px; border-radius:8px; border:1px solid #ccc; background:#fff; }
+.filters input, .filters select { padding:8px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; }
 
+/* TAGS */
 .tag { background:#e2e8f0; color:#111827; padding:2px 6px; border-radius:6px; font-size:.8em; }
 .chip { display:inline-block; background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; border-radius:999px; padding:3px 8px; margin:0 4px 4px 0; font-size:.8em; }
 
@@ -61,7 +66,7 @@ h2 { margin-bottom:15px; font-size:1.4em; color:#0072ff; }
   .sidebar { flex-direction:row; align-items:center; gap:8px; }
   .nav-btn { flex:1; text-align:center; }
   .main { padding:12px; }
-  .cards { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }
+  .cards { grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
 }
 
 /* ANIMAÇÃO */
